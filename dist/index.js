@@ -67,7 +67,7 @@ app.use('/graphql', cors(), bodyParser.json(), expressMiddleware(apolloServer, {
                 };
             }
             catch (error) {
-                console.log('esete es', error);
+                // console.log('esete es',error)
                 return '';
             }
         }

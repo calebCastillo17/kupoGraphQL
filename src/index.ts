@@ -94,7 +94,7 @@ const port= 4000
                           usuario
                       }
                   } catch (error) {
-                      console.log('esete es',error)
+                      // console.log('esete es',error)
                       return ''
                    }
               } 

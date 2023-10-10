@@ -7,8 +7,13 @@ import bcrypt from 'bcryptjs';
 import { GraphQLError } from "graphql";
 import dotenv from 'dotenv';
 import { PubSub } from "graphql-subscriptions";
+import mercadopago from "mercadopago";
 dotenv.config();
 const pubsub = new PubSub();
+mercadopago.configure({
+    sandbox: true,
+    access_token: 'TEST-1189115791143583-082513-4cc22a46e65a7425d209dd9c24b4a161-1460216965', // Reemplaza con tu clave secreta de Mercado Pago
+});
 const crearTokenCliente = (cliente, secreta, expiresIn) => {
     const { id, email, nombre } = cliente;
     return jwt.sign({ id, email, nombre }, secreta, { expiresIn });
@@ -20,26 +25,125 @@ export const ClienteResolvers = {
             const establecimiento = await Establecimiento.findById(establecimientoId);
             return establecimiento;
         },
-        obtenerEstablecimientosFilter: async (_, { nombre, ubicacion, metros, limit, page }, ctx) => {
-            console.log('obtenerrrrrrrrrrrrrr', ubicacion, metros);
-            const skip = (page - 1) * limit;
+        obtenerEstablecimientosFilter: async (_, { nombre, ubicacion, metros, limit, offset }, ctx) => {
+            console.log('obtenerrrrrrrrrrrrrr', nombre, ubicacion, metros, limit, offset);
             const filter = {};
             if (nombre) {
                 filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
-                // otra opcion `\\b${nombre}\\w*`
             }
+            let aggregationPipeline = [];
             if (ubicacion) {
-                filter.ubicacion = {
-                    $nearSphere: {
-                        $geometry: {
+                aggregationPipeline.push({
+                    $geoNear: {
+                        near: {
                             type: 'Point',
-                            coordinates: [ubicacion.latitude, ubicacion.longitude]
+                            coordinates: [ubicacion.latitude, ubicacion.longitude],
                         },
-                        $maxDistance: metros
-                    }
-                };
+                        distanceField: 'distancia',
+                        maxDistance: metros,
+                        spherical: true,
+                    },
+                });
             }
-            const establecimiento = await Establecimiento.find(filter).skip(skip).limit(limit);
+            aggregationPipeline = [
+                ...aggregationPipeline,
+                { $skip: offset },
+                { $limit: limit },
+            ];
+            const establecimientos = await Establecimiento.aggregate([
+                { $match: filter },
+                ...aggregationPipeline,
+            ]);
+            establecimientos.forEach((estab) => {
+                console.log(estab.nombre, estab.distancia);
+            });
+            return establecimientos;
+        },
+        // obtenerEstablecimientosFilter: async (_, {nombre,ubicacion, metros, limit, offset}, ctx) => {
+        //     console.log('obtenerrrrrrrrrrrrrr', nombre,ubicacion, metros, limit, offset)
+        //     const skip = (page - 1) * limit;
+        //     const filter: any = {}
+        //         if(nombre){
+        //         filter.nombre ={ $regex: new RegExp(`.*${nombre}`, 'i') };
+        //         otra opcion `\\b${nombre}\\w*`
+        //     }
+        //     if(ubicacion){
+        //         filter.ubicacion =  {
+        //             $nearSphere: {
+        //               $geometry: {
+        //                 type: 'Point',
+        //                 coordinates: [ubicacion.latitude,ubicacion.longitude]
+        //               },
+        //               $maxDistance: metros
+        //             }
+        //           }
+        //     }
+        //     const establecimiento = await Establecimiento.find(filter).skip(offset).limit(limit);
+        //     establecimiento.map((estab) => (
+        //             console.log(estab.nombre)
+        //     ))
+        //       return establecimiento;
+        // },
+        obtenerEstablecimientosDisponibles: async (_, { fecha, offset, limit, filtroNombre, ubicacion, metros }) => {
+            // Calcular el valor de salto (skip) en función de la paginación
+            const skip = (offset - 1) * limit;
+            console.log(fecha, offset, limit, ubicacion, metros);
+            const pipeline = [];
+            if (ubicacion) {
+                pipeline.push({
+                    $geoNear: {
+                        near: {
+                            type: "Point",
+                            coordinates: [ubicacion.latitude, ubicacion.longitude], // Proporciona las coordenadas del punto de referencia
+                        },
+                        distanceField: "distancia",
+                        spherical: true,
+                        maxDistance: metros
+                    },
+                });
+            }
+            pipeline.push({
+                $lookup: {
+                    from: 'reservas',
+                    let: { establecimientoId: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$establecimiento', '$$establecimientoId'] },
+                                        { $eq: ['$fecha', new Date(fecha)] },
+                                        { $eq: ['$estado', 'solicitud'] }, // Agregar el filtro de estado 'aceptado'
+                                    ],
+                                },
+                            },
+                        },
+                    ],
+                    as: 'reservas',
+                },
+            });
+            pipeline.push({
+                $match: {
+                    $expr: {
+                        $gt: [
+                            '$numeroCanchas',
+                            {
+                                $size: '$reservas'
+                            },
+                        ],
+                    },
+                },
+            });
+            pipeline.push({ $skip: offset });
+            pipeline.push({ $limit: limit });
+            // Agregación para obtener establecimientos disponibles (no reservados)
+            const establecimiento = await Establecimiento.aggregate(pipeline);
+            establecimiento.map((estab) => {
+                console.log(estab.nombre);
+                estab.reservas.map((reserva) => {
+                    console.log('Reserva:', reserva); // Imprime los detalles de la reserva
+                });
+            });
             return establecimiento;
         },
         obtenerCanchasPorEstablecimiento: async (_, { establecimientoId }, ctx) => {
@@ -171,7 +275,7 @@ export const ClienteResolvers = {
                 reserva.cliente = userId;
                 //almacenarlo en DB.
                 const resultado = await reserva.save();
-                // pubsub.publish('RESERVA', {nuevaReservacion: resultado})
+                pubsub.publish(`RESERVA_${input.establecimiento}`, { nuevaReservacion: resultado });
                 return resultado;
             }
             catch (error) {
@@ -183,7 +287,7 @@ export const ClienteResolvers = {
             if (!reserva) {
                 throw new Error('reserva no encontrada');
             }
-            // Si la persona que edita es o no 
+            // Si la persona que edita es o no
             if (reserva.cliente.toString() !== clienteId) {
                 throw new Error('No tienes las credenciales');
             }
@@ -199,7 +303,7 @@ export const ClienteResolvers = {
             if (!reserva) {
                 throw new Error('reserva no encontrada');
             }
-            // Si la persona que edita es o no 
+            // Si la persona que edita es o no
             if (reserva.cliente.toString() !== clienteId) {
                 throw new Error('No tienes las credenciales');
             }
@@ -207,6 +311,51 @@ export const ClienteResolvers = {
             console.log('verificacion', reserva);
             return reserva;
             // Guardar y retornar la tarea
+        },
+        realizarPagoTarjeta: async (_, { input }) => {
+            try {
+                // Obtén los datos de la tarjeta y el monto del input
+                console.log(input);
+                const { token, issuer_id, payment_method_id, installments, email, amount } = input;
+                //   Crea un objeto de preferencia de Mercado Pago con los datos del pago
+                const payment_data = {
+                    token,
+                    issuer_id,
+                    payment_method_id,
+                    transaction_amount: Number(amount),
+                    installments: Number(installments),
+                    description: "Descripción del producto",
+                    payer: {
+                        email,
+                        //   identification: {
+                        //     type: identificationType,
+                        //     number: identificationNumber,
+                        //   },
+                    },
+                };
+                // Crea la preferencia en Mercado Pago
+                const data = await mercadopago.payment.create(payment_data);
+                if (data) {
+                    console.log('generar respuesta', data);
+                    console.log('generar respuesta', data.body.fee_details);
+                }
+                const response = {
+                    success: true,
+                    message: 'Solicitud de pago exitosa',
+                    // paymentUrl: data.body.init_point,
+                };
+                console.log(response);
+                //   console.log(data.body.init_point)
+                return response;
+            }
+            catch (error) {
+                console.error('Error al solicitar el pago:', error);
+                return {
+                    success: false,
+                    message: 'Error al solicitar el pago',
+                    paymentUrl: null,
+                };
+            }
         },
     },
     Reserva: {
@@ -216,9 +365,16 @@ export const ClienteResolvers = {
             return establecimiento;
         },
     },
+    EstablecimientoLista: {
+        id: (establecimiento) => establecimiento._id.toString(),
+    },
     Subscription: {
         nuevaReservacion: {
-            subscribe: () => pubsub.asyncIterator('RESERVA')
+            subscribe: (_, { establecimientoId }) => {
+                console.log('subsribiendo a', establecimientoId);
+                return pubsub.asyncIterator(`RESERVA_${establecimientoId}`);
+            }
+            //    return context.pubsub.asyncIterator(`NUEVA_NOTIFICACION_${hotelId}`);
         },
     },
 };

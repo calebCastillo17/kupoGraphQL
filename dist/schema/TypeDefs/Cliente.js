@@ -24,7 +24,23 @@ type EstablecimientoLista {
     ubicacion:Ubicacion
     horarioApertura: Int!
     horarioCierre: Int!
+    reservas: [Reserva]
 }
+type EstablecimientoAltoque {
+    nombre: String
+    id: ID
+    direccion: String
+    numeroCanchas: Int
+    servicios: [String]
+    imagen: String
+    disponible: Boolean
+    ubicacion:Ubicacion
+    horarioApertura: Int!
+    horarioCierre: Int!
+    reservas: Reserva
+}
+
+
 type Establecimiento { 
     nombre: String
     id: ID
@@ -83,9 +99,15 @@ type UserPublic {
     telefono: String
 }
 
+type PagoResultado {
+    success: Boolean
+    message: String
+  }
+
 type  Query {
-    obtenerEstablecimientosFilter(ubicacion:UbicacionInput, metros: Int, nombre:String, limit:Int, page: Int ) : [EstablecimientoLista]
+    obtenerEstablecimientosFilter(ubicacion:UbicacionInput, metros: Int, nombre:String, limit:Int, offset: Int ) : [EstablecimientoLista]
     obtenerEstablecimientoPorId(establecimientoId: ID) : Establecimiento
+    obtenerEstablecimientosDisponibles(fecha: String, offset: Int!, limit: Int!,ubicacion:UbicacionInput,metros: Int): [EstablecimientoLista]
     obtenerCanchasPorEstablecimiento(establecimientoId: ID): [Cancha]
     obtenerReservasPorEstab(establecimientoId: ID!, fechaMin:String, fechaMax: String): [Reserva]
     obtenerReservasRealizadas(clienteId: ID!): [Reserva]
@@ -117,7 +139,21 @@ input  AutenticarInput{
     password:String!
 }
 
+input PagoInput {
+    
+    token: String
+    issuer_id: String
+    payment_method_id: String
+    installments: String
+    email: String
+    amount: String
+    orden: Orden
+  }
 
+input Orden {
+    user_id: String
+    establecimiento_id: String
+}
 
 input ReservaInput {
     establecimiento: ID!
@@ -146,7 +182,7 @@ type Mutation {
     refreshAccessTokenCliente(refreshToken: String!): AccessToken!
     verificarAutenticacion : Boolean
     editarUsuarioCliente(input: userCliente): User
-
+    
 
     
     #Reserva
@@ -156,10 +192,12 @@ type Mutation {
     actualizarReservaEstadoCliente(id:ID!, clienteId :String, estado: String): Reserva
 
 
+    realizarPagoTarjeta(input: PagoInput!): PagoResultado!
+
     
 }
 
 type Subscription {
-    nuevaReservacion: Reserva
+    nuevaReservacion(establecimientoId: ID!): Reserva
   }
 `;

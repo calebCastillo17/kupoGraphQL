@@ -17,7 +17,8 @@ export const ImperiotTypeDefs = `#graphql
         id: ID
 
     }
-    type Establecimiento { 
+    type Establecimiento {
+        id: ID 
         nombre: String
         creador: String
         descripcion: String
