@@ -1,9 +1,36 @@
 import Cliente from "../../models/Clientes.js";
 import Admin from "../../models/Admins.js";
+import Reserva from "../../models/Reservas.js";
 import Imperiot from "../../models/Imperiots.js";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import NotificacionesPush from "../../services/NotificacionesExpo.js";
+import cron from 'node-cron';
+// Programa el envío de notificaciones cada hora
+cron.schedule('22 * * * *', async () => {
+    // Lógica para enviar las notificaciones push aquí
+    const obtenerMisReservasNot = async () => {
+        const now = new Date();
+        const oneHourLater = new Date(now);
+        oneHourLater.setHours(now.getHours() + 2);
+        const reservas = await Reserva.find({
+            fecha: { $gte: now, $lt: oneHourLater },
+            estado: { $ne: 'denegado' },
+        })
+            .populate('cliente', 'notificaciones_token') // Realiza la operación de populate para cargar el campo "tokenNotificacion" del cliente
+            .sort({ fecha: 1 })
+            .exec();
+        const clientesAEniar = reservas.map(reserva => reserva.cliente.notificaciones_token);
+        return clientesAEniar;
+    };
+    const somePushTokens = await obtenerMisReservasNot();
+    console.log(somePushTokens);
+    console.log('Notificaciones enviadas cada hora');
+    //   const somePushTokens = ['ExponentPushToken[S9WqnpOG-B2t0oobHwB4ag]']
+    console.log(new Date());
+    NotificacionesPush(somePushTokens);
+});
 dotenv.config();
 const crearTokenImperiot = (imperiot, secreta, expiresIn) => {
     const { id, email, nombre } = imperiot;
@@ -60,6 +87,22 @@ export const ImperiotResolvers = {
             return {
                 token: crearTokenImperiot(existeImperiot, process.env.PALABRATOKEN, '1hr')
             };
-        }
+        },
+        // notificarUnaHoraNtesReserva: async (_, {input}, ctx) => {
+        //     const {email, password} = input;
+        //     //revisar si el usuario existe
+        //     const existeImperiot = await Imperiot.findOne({email})
+        //     if(!existeImperiot) {
+        //         throw new Error('El Imperiot no esta registrado');
+        //     }
+        //     //revisar si el password es correcto
+        //     const passwordCorrecto = await bcrypt.compare(password, existeImperiot.password)
+        //     if(!passwordCorrecto) {
+        //         throw new Error('password Incorrecto');
+        //     }
+        //     return {
+        //         token: crearTokenImperiot(existeImperiot, process.env.PALABRATOKEN, '1hr')
+        //     }
+        // },
     }
 };

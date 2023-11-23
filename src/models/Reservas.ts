@@ -1,5 +1,19 @@
-import { Schema, model } from "mongoose";
-const ReservasSchema = new Schema({
+import { Schema, model, Document } from "mongoose";
+
+interface Reserva {
+    fecha: Date;
+    abono: number;
+    cliente: Schema.Types.ObjectId ;
+    espacioAlquilado: string;
+    establecimiento: Schema.Types.ObjectId;
+    nombreUsuario: string;
+    registro: Date;
+    estado: string;
+  }
+  
+  // Definición del documento de Reserva (usando Document)
+  interface ReservaDocument extends Reserva, Document {}
+const ReservasSchema = new Schema<Reserva>({
     fecha: {
         type: Date,
         required: true,
@@ -38,6 +52,11 @@ const ReservasSchema = new Schema({
 
     }
 });
-ReservasSchema.index({ fecha: 1 })
-// ReservasSchema.index({ registro: 1 })
-export default  model('Reserva',ReservasSchema)
+
+
+ReservasSchema.index({ fecha: 1 });
+
+// Definición del modelo de Reserva (usando model)
+const ReservaModel = model<ReservaDocument>('Reserva', ReservasSchema);
+
+export default ReservaModel;

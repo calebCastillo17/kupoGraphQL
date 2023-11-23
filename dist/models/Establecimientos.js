@@ -57,6 +57,10 @@ const EstablecimientosSchema = new Schema({
         default: true,
         required: true,
     },
+    notificaciones_token: {
+        type: String,
+        trim: true,
+    },
     creador: {
         type: Schema.Types.ObjectId,
         ref: 'Admin',

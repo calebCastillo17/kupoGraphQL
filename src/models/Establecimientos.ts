@@ -15,6 +15,7 @@ interface IEstablecimiento extends Document {
     coordinates: number[];
   };
   disponible: boolean;
+  notificaciones_token: string;
   creador: Schema.Types.ObjectId;
   creado: Date;
 }
@@ -76,6 +77,11 @@ const EstablecimientosSchema = new Schema<IEstablecimiento>({
     type: Boolean,
     default: true,
     required: true,
+  },
+  notificaciones_token: {
+    type: String,
+    trim: true,
+    
   },
   creador: {
     type: Schema.Types.ObjectId,

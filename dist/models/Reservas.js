@@ -38,5 +38,6 @@ const ReservasSchema = new Schema({
     }
 });
 ReservasSchema.index({ fecha: 1 });
-// ReservasSchema.index({ registro: 1 })
-export default model('Reserva', ReservasSchema);
+// Definición del modelo de Reserva (usando model)
+const ReservaModel = model('Reserva', ReservasSchema);
+export default ReservaModel;

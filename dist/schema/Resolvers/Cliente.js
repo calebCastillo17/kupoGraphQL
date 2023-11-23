@@ -8,6 +8,7 @@ import { GraphQLError } from "graphql";
 import dotenv from 'dotenv';
 import { PubSub } from "graphql-subscriptions";
 import mercadopago from "mercadopago";
+import SmsTwilioSend from "../../services/SmsTwilio.js";
 dotenv.config();
 const pubsub = new PubSub();
 mercadopago.configure({
@@ -185,10 +186,11 @@ export const ClienteResolvers = {
     },
     Mutation: {
         crearCliente: async (_, { input }, ctx) => {
-            const { email, password } = input;
-            const existeCliente = await Cliente.findOne({ email });
+            console.log(input);
+            const { email, password, telefono } = input;
+            const existeCliente = await Cliente.findOne({ telefono });
             if (existeCliente) {
-                throw new Error('El cliente ya esta registrado');
+                throw new Error('Ese numero ya esta registrado');
             }
             try {
                 //Hashear Password
@@ -205,31 +207,61 @@ export const ClienteResolvers = {
             }
         },
         autenticarCliente: async (_, { input }, ctx) => {
-            const { email, password } = input;
+            const { password, telefono } = input;
             //revisar si el usuario existe
-            const existeCliente = await Cliente.findOne({ email });
+            const existeCliente = await Cliente.findOne({ telefono });
             if (!existeCliente) {
                 throw new Error('El cliente no esta registrado');
             }
-            const { nombre, apellido, nombreUsuario, sexo, telefono, id } = existeCliente;
-            const user = {
-                nombre,
-                apellido,
-                nombreUsuario,
-                sexo,
-                telefono,
-                id
-            };
+            const user = existeCliente;
             //revisar si el password es correcto
             const passwordCorrecto = await bcrypt.compare(password, existeCliente.password);
             if (!passwordCorrecto) {
                 throw new Error('password Incorrecto');
             }
+            console.log('clienteee ', user);
             return {
                 user,
                 accessToken: { token: crearTokenCliente(existeCliente, process.env.PALABRATOKEN, '20m') },
                 refreshToken: { token: crearTokenCliente(existeCliente, process.env.PALABRATOKEN, '7d') }
             };
+        },
+        enviarCodeVerificacionCliente: async (_, { telefono }, ctx) => {
+            let verificacionCode = Math.floor(10000 + Math.random() * 90000);
+            console.log('telefono,hhh', telefono);
+            const existeClient = await Cliente.findOne({ telefono });
+            if (!existeClient) {
+                throw new Error('El Usuario no está registrado');
+            }
+            try {
+                const mensaje = await SmsTwilioSend(telefono, `${verificacionCode} es tu codigo de verificacion`);
+                console.log('mensaje pe', mensaje.status);
+                if (mensaje.status === "queued") {
+                    const usuario = await Cliente.findOneAndUpdate({ telefono }, { code_verificacion: verificacionCode }, { new: true });
+                    if (usuario.code_verificacion === verificacionCode) {
+                        return 'codigo enviado';
+                    }
+                    console.log('usuario ps', usuario);
+                }
+            }
+            catch (error) {
+                console.log('mensaje serio error', error);
+                throw new Error(error);
+            }
+        },
+        verificarCliente: async (_, { code, telefono }, ctx) => {
+            console.log('telefono, y codigo', telefono, code);
+            const existeAdmin = await Cliente.findOne({ telefono });
+            if (!existeAdmin) {
+                throw new Error('El Usuario no está registrado');
+            }
+            if (existeAdmin.code_verificacion === code) {
+                await Cliente.findOneAndUpdate({ telefono }, { estado: 'verificado' }, { new: true });
+                return 'correcto';
+            }
+            else {
+                return 'incorrecto';
+            }
         },
         refreshAccessTokenCliente: (parent, { refreshToken }) => {
             // Verificar el token de actualización (refresh token)
@@ -252,8 +284,25 @@ export const ClienteResolvers = {
             }
             return true;
         },
+        restaurarPassword: async (_, { input }, ctx) => {
+            const { email, password, telefono } = input;
+            console.log(password, telefono);
+            const existeClient = await Cliente.findOne({ telefono });
+            if (!existeClient) {
+                throw new Error('El Usuario no está registrado');
+            }
+            try {
+                //Hashear Password
+                const salt = await bcrypt.genSalt(10);
+                const passwordNew = await bcrypt.hash(password, salt);
+                await Cliente.findOneAndUpdate({ telefono }, { password: passwordNew }, { new: true });
+                return "Contraseña restablecida correctamente";
+            }
+            catch (error) {
+                console.log(error);
+            }
+        },
         editarUsuarioCliente: async (_, { input }, ctx) => {
-            console.log('editarrrr cliente', input);
             if (!ctx.usuario) {
                 throw new GraphQLError('Cliente No autenticado', {
                     extensions: { code: 'UNAUTHENTICATED' },
@@ -265,6 +314,48 @@ export const ClienteResolvers = {
             }
             // Si la persona que edita es o no!!
             usuario = await Cliente.findOneAndUpdate({ _id: ctx.usuario.id }, input, { new: true });
+            console.log('editarrrr cliente', usuario);
+            return usuario;
+        },
+        editarPeloteroCliente: async (_, { input }, ctx) => {
+            if (!ctx.usuario) {
+                throw new GraphQLError('Cliente No autenticado', {
+                    extensions: { code: 'UNAUTHENTICATED' },
+                });
+            }
+            console.log('pelotero', input);
+            let usuario = await Cliente.findById(ctx.usuario.id);
+            if (!usuario) {
+                throw new Error('usuario no encontrado');
+            }
+            // Si la persona que edita es o no!!
+            usuario = await Cliente.findOneAndUpdate({ _id: ctx.usuario.id }, { pelotero: input }, { new: true });
+            console.log('editarrrr cliente', usuario);
+            return usuario;
+        },
+        editarFotoCliente: async (_, { foto }, ctx) => {
+            console.log('foto', foto);
+            let usuario = await Cliente.findById(ctx.usuario.id);
+            if (!usuario) {
+                throw new Error('usuario no encontrado');
+            }
+            // Si la persona que edita es o no!!
+            usuario = await Cliente.findOneAndUpdate({ _id: ctx.usuario.id }, { foto }, { new: true });
+            console.log('editarrrr cliente', usuario);
+            return usuario;
+        },
+        actualizarTokenNotificacionesCliente: async (_, { token }, ctx) => {
+            if (!ctx.usuario) {
+                throw new GraphQLError('Cliente No autenticado', {
+                    extensions: { code: 'UNAUTHENTICATED' },
+                });
+            }
+            let usuario = await Cliente.findById(ctx.usuario.id);
+            if (!usuario) {
+                throw new Error('usuario cliente no encontrado');
+            }
+            // Si la persona que edita es o no!!
+            usuario = await Cliente.findOneAndUpdate({ _id: ctx.usuario.id }, { notificaciones_token: token }, { new: true });
             return usuario;
         },
         nuevaReserva: async (_, { userId, input }, ctx) => {

@@ -10,6 +10,7 @@ export const AdminTypeDefs = `#graphql
     descripcion: String
     imagen: String
     direccion: String
+    notificaciones_token: String
 }
  
 type  MiEstablecimiento{ 
@@ -26,6 +27,7 @@ type  MiEstablecimiento{
     ubicacion: Ubicacion
     disponible: Boolean
     nuevo: String
+    notificaciones_token: String
 }
 
 type Ubicacion {
@@ -64,15 +66,6 @@ type RefreshToken {
     token: String
 }
 
-type User {
-    nombre:String
-    apellido:String
-    nombreUsuario: String
-    sexo: String
-    telefono: String
-    id:ID
-}
-
 type AuthPayload {
     user: User
     accessToken: AccessToken!
@@ -83,8 +76,10 @@ type Admin{
     nombre: String
     apellido: String
     email: String
+    telefono: String
     code: Int
     message: String
+    notificaciones_token: String
 }
 
 type  Query {        
@@ -106,20 +101,33 @@ input AdminInput {
     apellido: String!
     email: String!
     password:String!
+    telefono: String
+    lugar: Lugar
+    fecha_nacimiento: String
 }
-
+input Lugar {
+    pais: String
+    nivel_1: String
+    nivel_2: String
+    nivel_3: String
+}
 input userAdmin {
     nombre:String
     apellido:String
+    foto: String
     nombreUsuario: String
     sexo: String
+    telefono: String
+    lugar: Lugar
+    fecha_nacimiento: String
 }
 
 
-input  AutenticarInput{
-    email: String!
+input  AutenticarAdminInput{
+    telefono: String!
     password:String!
 }
+
 
 input EstablecimientoInput {
     nombre: String!
@@ -143,6 +151,7 @@ input EstablecimientoInputEdit {
     servicios: [String]
     telefono:String
     numeroCanchas: Int
+
 
 }
 
@@ -168,10 +177,14 @@ type Mutation {
     
     # administradores
     crearAdmin (input: AdminInput): String
-    verificarAdmin(input: AdminInput) : Admin
-    autenticarAdmin(input: AutenticarInput) : AuthPayload!
+    verificarAdmin(telefono: String, code: Int ) : String!
+    enviarCodeVerificacionAdmin(telefono: String ) : String
+    autenticarAdmin(input: AutenticarAdminInput) : AuthPayload!
     verificarAutenticacion : Boolean
+    restaurarPasswordAdmin(input: AutenticarAdminInput): String
     editarUsuario(input: userAdmin): User
+    editarFotoAdmin(foto: String): String
+    actualizarTokenNotificaciones(token: String): User
     refreshAccessTokenAdmin(refreshToken: String!): AccessToken!
     
 
@@ -179,6 +192,7 @@ type Mutation {
     nuevoEstablecimiento(input: EstablecimientoInput, ubicacion: UbicacionInput) : MiEstablecimiento
     actualizarEstablecimiento(id : ID!, input: EstablecimientoInputEdit,  disponible: Boolean , ubicacion: UbicacionInput ): MiEstablecimiento
     eliminarEstablecimiento(id:ID!) : String 
+    actualizarTokenNotificacionesEstablecimiento(token: String ,establecimientoId: ID): MiEstablecimiento
 
     #cancha
     nuevaCancha(establecimientoId: String, input: CanchaInput) : MiCancha

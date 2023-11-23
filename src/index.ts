@@ -10,7 +10,6 @@ import { ImperiotResolvers } from './schema/Resolvers/Imperiot.js';
 import { ImperiotTypeDefs } from './schema/TypeDefs/Imperiot.js';
 import jwt from 'jsonwebtoken';
 
-
 import { expressMiddleware } from '@apollo/server/express4';
 import cors from 'cors';
 import { makeExecutableSchema } from '@graphql-tools/schema';

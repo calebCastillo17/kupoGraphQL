@@ -12,6 +12,11 @@ const AdminsSchema =  new Schema({
         require: true,
         trim: true,
     },
+    foto: {
+        type: String,
+        trim: true,
+        required: false,
+    },
     nombreUsuario:{
         type: String,
         require: true,
@@ -24,11 +29,16 @@ const AdminsSchema =  new Schema({
         trim: true,
         default: null
     },
-    email:{
+    telefono:{
         type: String,
         require: true,
         trim: true,
         unique: true,
+    },
+    email:{
+        type: String,
+        require: true,
+        trim: true,
         lowercase:true,
     },
     password: {
@@ -37,12 +47,30 @@ const AdminsSchema =  new Schema({
         trim: true,
         
     },
+    code_verificacion: {
+        type: Number,
+        trim: true,
+        
+    },
+    fecha_nacimiento: {
+        type: Date,
+        required: true,
+    },
+    lugar: {
+            pais: { type: String },
+            nivel_1: { type: String },
+            nivel_2: { type: String },
+            nivel_3: { type: String },
+    },
     estado: {
         type: String,
         require: true,
         trim: true,
-        default: 'noVerificado'
-        
+        default: 'no_verificado'
+    },
+    notificaciones_token: {
+        type: String,
+        trim: true,
     },
     registro:{
         type: Date,

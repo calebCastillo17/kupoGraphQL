@@ -13,6 +13,7 @@ export  const ClienteTypeDefs = `#graphql
     inhabilitado:[Int]
     
 }
+
 type EstablecimientoLista {
     nombre: String
     id: ID
@@ -25,6 +26,7 @@ type EstablecimientoLista {
     horarioApertura: Int!
     horarioCierre: Int!
     reservas: [Reserva]
+    notificaciones_token: String
 }
 type EstablecimientoAltoque {
     nombre: String
@@ -38,6 +40,7 @@ type EstablecimientoAltoque {
     horarioApertura: Int!
     horarioCierre: Int!
     reservas: Reserva
+    notificaciones_token: String
 }
 
 
@@ -54,6 +57,7 @@ type Establecimiento {
     imagen: String
     ubicacion: Ubicacion
     disponible: Boolean
+    notificaciones_token: String
 }
 
 
@@ -85,18 +89,51 @@ type AuthPayload {
 
 type User {
     nombre: String
-    apellido: String
+    apellido: String 
+    foto: String
     nombreUsuario:String
     sexo: String
     telefono: String
     id:ID
+    notificaciones_token: String
+    lugar: Localidad
+    fecha_nacimiento: String
+    pelotero: Pelotero
 }
+
+
+type Pelotero {
+    edad: String  
+    posicion: String  
+    club: String  
+    numero_camiseta: String
+    tallas: Tallas
+    lesiones: [String] 
+    pierna_habil:String 
+    peso: String 
+    estatura:String 
+}
+
+type Tallas {
+    camiseta:String 
+    short: String 
+    calzado:String 
+}
+
+type Localidad {
+    pais: String
+    nivel_1: String
+    nivel_2: String
+    nivel_3: String
+}
+
 type UserPublic {
     nombre: String
     apellido: String
     nombreUsuario:String
     sexo: String
     telefono: String
+    notificaciones_token: String
 }
 
 type PagoResultado {
@@ -123,19 +160,46 @@ input ClienteInput {
     nombre: String!
     apellido: String!
     email: String!
+    telefono: String
     password:String!
+    lugar: Lugar
+    fecha_nacimiento: String
 }
-
+input Lugar {
+    pais: String
+    nivel_1: String
+    nivel_2: String
+    nivel_3: String
+}
+input PeloteroInput {
+    edad: String  
+    posicion: String  
+    club: String  
+    numero_camiseta: String
+    tallas: TallasInput
+    lesiones: [String] 
+    pierna_habil:String 
+    peso: String 
+    estatura:String 
+}
+input TallasInput {
+    camiseta:String 
+    short: String 
+    calzado:String 
+}
 input userCliente {
     nombre: String
     apellido:String
+    foto:String
     nombreUsuario: String
     sexo:String
     telefono:String
+    lugar: Lugar
+    fecha_nacimiento: String
 }
 
-input  AutenticarInput{
-    email: String!
+input  AutenticarClienteInput{
+    telefono: String!
     password:String!
 }
 
@@ -162,26 +226,36 @@ input ReservaInput {
     abono: Int
     nombreUsuario: String
     estado: String
+    registro: String
 }
 input UbicacionInput {
     latitude: Float
     longitude: Float
 }
 
-
 type Ubicacion {
  
     longitude: Float!
     latitude:  Float!
   }
+type Verificacion {
+    code: Int
+    message: String
+}
 type Mutation {
 
     # usuario
     crearCliente (input: ClienteInput): String
-    autenticarCliente(input: AutenticarInput) : AuthPayload!
+    autenticarCliente(input: AutenticarClienteInput) : AuthPayload!
+    verificarCliente(telefono: String, code:Int ) : String!
+    enviarCodeVerificacionCliente(telefono: String ) : String
     refreshAccessTokenCliente(refreshToken: String!): AccessToken!
     verificarAutenticacion : Boolean
+    restaurarPassword(input: AutenticarClienteInput): String
     editarUsuarioCliente(input: userCliente): User
+    editarPeloteroCliente(input: PeloteroInput): User
+    editarFotoCliente(foto: String): User
+    actualizarTokenNotificacionesCliente(token: String): User
     
 
     

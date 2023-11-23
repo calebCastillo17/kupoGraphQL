@@ -13,7 +13,6 @@ export const ClienteTypeDefs = `#graphql
     inhabilitado:[Int]
     
 }
-
 type EstablecimientoLista {
     nombre: String
     id: ID
@@ -87,44 +86,21 @@ type AuthPayload {
     refreshToken: RefreshToken!
 }
 
+type Lugar {
+    pais: String
+    nivel_1: String
+    nivel_2: String
+    nivel_3: String
+}
 type User {
     nombre: String
     apellido: String 
-    foto: String
     nombreUsuario:String
     sexo: String
     telefono: String
     id:ID
     notificaciones_token: String
-    lugar: Localidad
-    fecha_nacimiento: String
-    pelotero: Pelotero
-}
-
-
-type Pelotero {
-    edad: String  
-    posicion: String  
-    club: String  
-    numero_camiseta: String
-    tallas: Tallas
-    lesiones: [String] 
-    pierna_habil:String 
-    peso: String 
-    estatura:String 
-}
-
-type Tallas {
-    camiseta:String 
-    short: String 
-    calzado:String 
-}
-
-type Localidad {
-    pais: String
-    nivel_1: String
-    nivel_2: String
-    nivel_3: String
+    lugar: Lugar
 }
 
 type UserPublic {
@@ -171,31 +147,13 @@ input Lugar {
     nivel_2: String
     nivel_3: String
 }
-input PeloteroInput {
-    edad: String  
-    posicion: String  
-    club: String  
-    numero_camiseta: String
-    tallas: TallasInput
-    lesiones: [String] 
-    pierna_habil:String 
-    peso: String 
-    estatura:String 
-}
-input TallasInput {
-    camiseta:String 
-    short: String 
-    calzado:String 
-}
+
 input userCliente {
     nombre: String
     apellido:String
-    foto:String
     nombreUsuario: String
     sexo:String
     telefono:String
-    lugar: Lugar
-    fecha_nacimiento: String
 }
 
 input  AutenticarClienteInput{
@@ -233,6 +191,7 @@ input UbicacionInput {
     longitude: Float
 }
 
+
 type Ubicacion {
  
     longitude: Float!
@@ -253,8 +212,6 @@ type Mutation {
     verificarAutenticacion : Boolean
     restaurarPassword(input: AutenticarClienteInput): String
     editarUsuarioCliente(input: userCliente): User
-    editarPeloteroCliente(input: PeloteroInput): User
-    editarFotoCliente(foto: String): User
     actualizarTokenNotificacionesCliente(token: String): User
     
 
