@@ -429,7 +429,6 @@ export const AdminResolvers = {
         }
     },
     actualizarCancha: async (_,{id,  input, disponible}, ctx) => {
-            //si la tarea existe o no
             let cancha = await Cancha.findById(id);
             if(!ctx.usuario){
                 throw new GraphQLError('Cancha No autenticada', {
@@ -437,24 +436,19 @@ export const AdminResolvers = {
                 });
             }
             console.log(input)
-
             if (!cancha){
                 throw new GraphQLError('Cancha No autenticada', {
                     extensions: { code: 'UNAUTHENTICATED'},
                 });
-
             }
             // Si la persona que edita es o no
-
             if(cancha.creador.toString() !== ctx.usuario.id){
                 throw new Error('No tienes las credenciales ');
             }
             input.disponible = disponible
-
             cancha = await Cancha.findOneAndUpdate({_id:id}, input, {new:true})
              console.log('verificacion',cancha)
             return cancha
-
             // Guardar y retornar la tarea
     },
     eliminarCancha: async (_,{id}, ctx) => {

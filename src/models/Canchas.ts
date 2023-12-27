@@ -12,13 +12,19 @@ const CanchaSchema = new Schema({
         trim: true,
 
     },
-    
     precio:{
-        type:Number,
-        require:true,
-        trim: true,
-        default: 0
-
+        dia: { 
+            type:Number,
+            require:true,
+            trim: true,
+            default: 0
+        },
+        noche: { 
+            type:Number,
+            require:true,
+            trim: true,
+            default: 0
+        }
     },
     imagen:{
         type:String,

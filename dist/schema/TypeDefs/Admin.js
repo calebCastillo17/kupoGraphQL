@@ -35,12 +35,15 @@ type Ubicacion {
     longitude: Float!
     latitude:  Float!
   }
- 
+type Precio {
+    dia: Int
+    noche:Int
+}
 
 type MiCancha{
     nombre: String
     nombreOpcional: String
-    precio: Int
+    precio: Precio
     id: ID
     inhabilitado:[Int]
     ocupado:[Int]
@@ -160,16 +163,18 @@ input UbicacionInput {
     longitude: Float
 }
 
-
+input PrecioInput {
+    dia:Int
+    noche:Int
+}
 
 input CanchaInput {
     nombre: String
     nombreOpcional: String
-    precio: Int
+    precio: PrecioInput
     ocupado:[Int]
     inhabilitado:[Int]
     imagen: String
-
 }
 
 

@@ -45,12 +45,10 @@ const AdminsSchema =  new Schema({
         type: String,
         require: true,
         trim: true,
-        
     },
     code_verificacion: {
         type: Number,
         trim: true,
-        
     },
     fecha_nacimiento: {
         type: Date,

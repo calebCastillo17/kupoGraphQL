@@ -6,12 +6,16 @@ export  const ClienteTypeDefs = `#graphql
       
   type Cancha{
     nombre: String
-    precio: Int
+    precio: Precio
     id: ID
     imagen:String
     nombreOpcional: String
     inhabilitado:[Int]
     
+}
+type Precio{
+    dia:Int
+    noche: Int
 }
 
 type EstablecimientoLista {

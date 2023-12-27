@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 import NotificacionesPush from "../../services/NotificacionesExpo.js";
 import cron from 'node-cron';
 // Programa el envío de notificaciones cada hora
-cron.schedule('22 * * * *', async () => {
+cron.schedule('28 * * * *', async () => {
     // Lógica para enviar las notificaciones push aquí
     const obtenerMisReservasNot = async () => {
         const now = new Date();

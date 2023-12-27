@@ -346,7 +346,6 @@ export const AdminResolvers = {
             }
         },
         actualizarCancha: async (_, { id, input, disponible }, ctx) => {
-            //si la tarea existe o no
             let cancha = await Cancha.findById(id);
             if (!ctx.usuario) {
                 throw new GraphQLError('Cancha No autenticada', {
