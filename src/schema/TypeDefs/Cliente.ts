@@ -22,6 +22,7 @@ type EstablecimientoLista {
     nombre: String
     id: ID
     direccion: String
+    descripcion: String
     numeroCanchas: Int
     servicios: [String]
     imagen: String
@@ -31,6 +32,8 @@ type EstablecimientoLista {
     horarioCierre: Int!
     reservas: [Reserva]
     notificaciones_token: String
+    valoracion: Float
+    premium: Boolean
 }
 type EstablecimientoAltoque {
     nombre: String
@@ -45,6 +48,7 @@ type EstablecimientoAltoque {
     horarioCierre: Int!
     reservas: Reserva
     notificaciones_token: String
+    premium: Boolean
 }
 
 
@@ -62,6 +66,7 @@ type Establecimiento {
     ubicacion: Ubicacion
     disponible: Boolean
     notificaciones_token: String
+    premium: Boolean
 }
 
 

@@ -38,7 +38,7 @@ export const  ClienteResolvers = {
             return establecimiento;
         },
         obtenerEstablecimientosFilter: async (_, { nombre, ubicacion, metros, limit, offset }, ctx) => {
-            console.log('obtenerrrrrrrrrrrrrr', nombre, ubicacion, metros, limit, offset);
+            console.log('obtenerrr', nombre, ubicacion, metros, limit, offset);
 
             const filter: any = {};
 
@@ -61,9 +61,17 @@ export const  ClienteResolvers = {
                     },
                 });
             }
-
+            // Agregar paso de ordenación por valoración de mayor a menor
+            // aggregationPipeline.push({
+            //     $sort: {
+            //     valoracion: -1,
+            //     },
+            // });
             aggregationPipeline = [
                 ...aggregationPipeline,
+                { $sort: {
+                    valoracion: -1,
+                    },},
                 { $skip: offset },
                 { $limit: limit },
             ];
@@ -72,9 +80,9 @@ export const  ClienteResolvers = {
                 { $match: filter },
                 ...aggregationPipeline,
             ]);
-
+            console.log('probando sort')
             establecimientos.forEach((estab) => {
-                console.log(estab.nombre, estab.distancia);
+                console.log(estab.nombre, estab.distancia,'valoracion:', estab.valoracion);
             });
 
             return establecimientos;

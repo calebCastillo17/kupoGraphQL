@@ -1,4 +1,4 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Decimal128 } from 'mongoose';
 
 interface IEstablecimiento extends Document {
   nombre: string;
@@ -15,7 +15,9 @@ interface IEstablecimiento extends Document {
     coordinates: number[];
   };
   disponible: boolean;
+  premium: boolean;
   notificaciones_token: string;
+  valoracion: number; 
   creador: Schema.Types.ObjectId;
   creado: Date;
 }
@@ -81,7 +83,15 @@ const EstablecimientosSchema = new Schema<IEstablecimiento>({
   notificaciones_token: {
     type: String,
     trim: true,
-    
+  },
+  valoracion: {
+    type: Number,
+    required: true,
+    default: 3.5,
+  },
+  premium: {
+    type: Boolean,
+    default: false,
   },
   creador: {
     type: Schema.Types.ObjectId,
@@ -95,5 +105,5 @@ const EstablecimientosSchema = new Schema<IEstablecimiento>({
 });
 
 EstablecimientosSchema.index({ ubicacion: "2dsphere" });
-
+EstablecimientosSchema.index({ valoracion: -1 });
 export default model<IEstablecimiento>('Establecimiento', EstablecimientosSchema)

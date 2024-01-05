@@ -61,6 +61,15 @@ const EstablecimientosSchema = new Schema({
         type: String,
         trim: true,
     },
+    valoracion: {
+        type: Number,
+        required: true,
+        default: 3.5,
+    },
+    // premium: {
+    //   type: B,
+    //   default: 0,
+    // },
     creador: {
         type: Schema.Types.ObjectId,
         ref: 'Admin',
@@ -72,4 +81,5 @@ const EstablecimientosSchema = new Schema({
     },
 });
 EstablecimientosSchema.index({ ubicacion: "2dsphere" });
+EstablecimientosSchema.index({ valoracion: -1 });
 export default model('Establecimiento', EstablecimientosSchema);

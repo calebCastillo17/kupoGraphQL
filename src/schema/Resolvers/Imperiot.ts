@@ -57,18 +57,79 @@ const crearTokenImperiot = (imperiot, secreta, expiresIn) => {
 export const ImperiotResolvers = {
     
     Query: {
-        obtenerClientes: async (_, {}, ctx) => {
-            const clientes =  await Cliente.find()
+        obtenerClientes: async (_, {nombre, apellido, nombreUsuario, limit, offset}, ctx) => {
+            const filter: any = {};
+
+            if (nombre) {
+                filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
+            }
+
+            let aggregationPipeline = [];
+
+
+            aggregationPipeline = [
+                ...aggregationPipeline,
+                { $match: filter },
+                { $skip: offset },
+                { $limit: limit },
+            ];
+
+            const clientes = await Cliente.aggregate([
+                ...aggregationPipeline,
+            ]);
             return clientes;
         },
         obtenerAdmins: async (_, {}, ctx) => {
             const admins =  await Admin.find()
             return admins;
         },
-        // obtenerEstablecimientos:  async (_, {}, ctx) => {
-        //     const establecimientos =  await Establecimiento.find()
-        //     return establecimientos;
-        // }
+
+        
+        obtenerEstablecimientosFilter: async (_, { nombre, ubicacion, metros, limit, offset }, ctx) => {
+            console.log('obten', nombre, ubicacion, metros, limit, offset);
+
+            const filter: any = {};
+
+            if (nombre) {
+                filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
+            }
+
+            let aggregationPipeline = [];
+
+            if (ubicacion) {
+                aggregationPipeline.push({
+                    $geoNear: {
+                        near: {
+                            type: 'Point',
+                            coordinates: [ubicacion.latitude, ubicacion.longitude],
+                        },
+                        distanceField: 'distancia',
+                        maxDistance: metros,
+                        spherical: true,
+                    },
+                });
+            }
+
+            aggregationPipeline = [
+                ...aggregationPipeline,
+                { $sort: {
+                    valoracion: -1,
+                    },},
+                { $skip: offset },
+                { $limit: limit },
+            ];
+
+            const establecimientos = await Establecimiento.aggregate([
+                { $match: filter },
+                ...aggregationPipeline,
+            ]);
+
+            establecimientos.forEach((estab) => {
+                console.log(estab.nombre, estab.distancia,'valoracion:', estab.valoracion);
+            });
+
+            return establecimientos;
+        },
     },
     Mutation:{ 
 
