@@ -39,8 +39,21 @@ const crearTokenImperiot = (imperiot, secreta, expiresIn) => {
 };
 export const ImperiotResolvers = {
     Query: {
-        obtenerClientes: async (_, {}, ctx) => {
-            const clientes = await Cliente.find();
+        obtenerClientes: async (_, { nombre, apellido, nombreUsuario, limit, offset }, ctx) => {
+            const filter = {};
+            if (nombre) {
+                filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
+            }
+            let aggregationPipeline = [];
+            aggregationPipeline = [
+                ...aggregationPipeline,
+                { $match: filter },
+                { $skip: offset },
+                { $limit: limit },
+            ];
+            const clientes = await Cliente.aggregate([
+                ...aggregationPipeline,
+            ]);
             return clientes;
         },
         obtenerAdmins: async (_, {}, ctx) => {

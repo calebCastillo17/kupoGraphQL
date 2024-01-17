@@ -64,12 +64,12 @@ const EstablecimientosSchema = new Schema({
     valoracion: {
         type: Number,
         required: true,
-        default: 3.5,
+        default: 0.1,
     },
-    // premium: {
-    //   type: B,
-    //   default: 0,
-    // },
+    premium: {
+        type: Boolean,
+        default: false,
+    },
     creador: {
         type: Schema.Types.ObjectId,
         ref: 'Admin',

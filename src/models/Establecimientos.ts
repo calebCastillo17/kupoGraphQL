@@ -87,7 +87,7 @@ const EstablecimientosSchema = new Schema<IEstablecimiento>({
   valoracion: {
     type: Number,
     required: true,
-    default: 3.5,
+    default:0.1,
   },
   premium: {
     type: Boolean,
