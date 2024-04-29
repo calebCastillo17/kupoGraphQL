@@ -252,7 +252,7 @@ export const  ClienteResolvers = {
                 console.log('clienteee ' , user)
                 return {
                 user,
-                accessToken:{ token: crearTokenCliente(existeCliente, process.env.PALABRATOKEN, '2m')},
+                accessToken:{ token: crearTokenCliente(existeCliente, process.env.PALABRATOKEN, '1h')},
                 refreshToken: {token: crearTokenCliente(existeCliente, process.env.PALABRATOKEN, '7d' )}
 
                 }
@@ -305,7 +305,7 @@ export const  ClienteResolvers = {
               const usuario = jwt.verify(refreshToken, process.env.PALABRATOKEN);
                 console.log(usuario)
               // Generar un nuevo token de acceso
-              const accessToken = crearTokenCliente(usuario, process.env.PALABRATOKEN,'2m');
+              const accessToken = crearTokenCliente(usuario, process.env.PALABRATOKEN,'1h');
 
               return { token: accessToken};
             } catch (error) {
