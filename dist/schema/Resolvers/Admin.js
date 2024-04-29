@@ -47,14 +47,13 @@ export const AdminResolvers = {
             return establecimiento;
         },
         obtenerMisCanchasPorEstablecimientoFuera: async (_, { establecimientoId }, ctx) => {
-            console.log(establecimientoId);
-            if (!ctx.usuario) {
-                throw new GraphQLError('no Autenticado 2', {
-                    extensions: { code: 'UNAUTHENTICATED' },
-                });
-            }
-            console.log('establecimiento oid---------', establecimientoId);
-            const canchas = await Cancha.find({ creador: ctx.usuario.id }).where('establecimiento').equals(establecimientoId);
+            // if(!ctx.usuario){
+            //     throw new GraphQLError('Cancha No autenticada', {
+            //         extensions: { code: 'UNAUTHENTICATED'},
+            //     });
+            // }
+            console.log('establecimiento  id---------', establecimientoId);
+            const canchas = await Cancha.find({ establecimiento: establecimientoId });
             console.log(canchas);
             return canchas;
         },
@@ -183,8 +182,8 @@ export const AdminResolvers = {
             }
             return {
                 user: user,
-                accessToken: { token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '50m') },
-                refreshToken: { token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '1h') }
+                accessToken: { token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '10m') },
+                refreshToken: { token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '10m') }
             };
         },
         refreshAccessTokenAdmin: (parent, { refreshToken }) => {
@@ -193,7 +192,7 @@ export const AdminResolvers = {
                 const usuario = jwt.verify(refreshToken, process.env.PALABRATOKEN);
                 console.log(usuario);
                 // Generar un nuevo token de acceso
-                const accessToken = crearTokenAdmin(usuario, process.env.PALABRATOKEN, '1h');
+                const accessToken = crearTokenAdmin(usuario, process.env.PALABRATOKEN, '10m');
                 return { token: accessToken };
             }
             catch (error) {
@@ -249,7 +248,6 @@ export const AdminResolvers = {
             return usuario;
         },
         nuevoEstablecimiento: async (_, { input, ubicacion }, ctx) => {
-            console.log('nuevo establecimieno', input);
             if (!ctx.usuario) {
                 throw new GraphQLError('Admin No autenticado', {
                     extensions: { code: 'UNAUTHENTICATED' },
@@ -265,8 +263,20 @@ export const AdminResolvers = {
                         coordinates: [ubicacion.latitude, ubicacion.longitude]
                     };
                 }
-                //almacenarlo en DB.
                 const resultado = await establecimiento.save();
+                ////////////CREAR CANCHAS DEACUERDO AL NUMER /////////////
+                console.log('nuevo establecimieno', input);
+                if (input.numeroCanchas) {
+                    for (let i = 1; i <= input.numeroCanchas; i++) {
+                        const nuevaCancha = new Cancha({
+                            nombre: `Cancha ${i}`,
+                            establecimiento: resultado._id,
+                            creador: ctx.usuario.id
+                        });
+                        console.log('nueva cancha', nuevaCancha.nombre);
+                        await nuevaCancha.save();
+                    }
+                }
                 return resultado;
             }
             catch (error) {
@@ -274,8 +284,6 @@ export const AdminResolvers = {
             }
         },
         actualizarEstablecimiento: async (_, { id, input, disponible, ubicacion }, ctx) => {
-            //si la tarea existe o no
-            console.log(ubicacion);
             if (!ctx.usuario) {
                 throw new GraphQLError('Admin No autenticado', {
                     extensions: { code: 'UNAUTHENTICATED' },
@@ -291,22 +299,15 @@ export const AdminResolvers = {
                     coordinates: [ubicacion.latitude, ubicacion.longitude]
                 };
             }
-            // if(establecimiento.creador.toString() !== ctx.usuario.id){
-            //     throw new Error('Establecimiento no Autenticado');
-            // }
             input.disponible = disponible;
             establecimiento = await Establecimiento.findOneAndUpdate({ _id: id }, input, { new: true });
-            // console.log('actualizar estab', establecimiento)
             return establecimiento;
-            // Guardar y retornar la tarea
         },
         eliminarEstablecimiento: async (_, { id }, ctx) => {
-            //si la tarea existe o no
             let establecimiento = await Establecimiento.findById(id);
             if (!establecimiento) {
                 throw new Error('establecimiento no encontrada');
             }
-            // Si la persona que edita es o no
             if (establecimiento.creador.toString() !== ctx.usuario.id) {
                 throw new Error('No tienes las credenciales ');
             }
@@ -324,25 +325,26 @@ export const AdminResolvers = {
             return establecimiento;
         },
         nuevaCancha: async (_, { establecimientoId, input }, ctx) => {
-            console.log('nueva cancha-------------', input);
+            console.log('el id del establecimientoooooooooooo', establecimientoId); // Actualizar el número de canchas en el establecimiento
             if (!ctx.usuario) {
-                throw new GraphQLError('Cancha No autenticada', {
+                throw new GraphQLError('Cancha no autenticada', {
                     extensions: { code: 'UNAUTHENTICATED' },
                 });
             }
             try {
-                const cancha = new Cancha(input);
-                // Asociar al creador
-                cancha.establecimiento = establecimientoId;
-                cancha.creador = ctx.usuario.id;
-                console.log(cancha);
-                //almacenarlo en DB.
-                const resultado = await cancha.save();
-                console.log("desde resultado", resultado);
+                const numeroCanchas = await Cancha.countDocuments({ establecimiento: establecimientoId });
+                const nombreCancha = `Cancha ${numeroCanchas + 1}`;
+                const nuevaCancha = new Cancha({ nombre: nombreCancha, establecimiento: establecimientoId, creador: ctx.usuario.id });
+                const resultado = await nuevaCancha.save();
+                console.log('el id del establecimiento', establecimientoId); // Actualizar el número de canchas en el establecimiento
+                await Establecimiento.findByIdAndUpdate(establecimientoId, { numeroCanchas: numeroCanchas + 1 });
                 return resultado;
             }
             catch (error) {
                 console.log(error);
+                throw new GraphQLError('Error al crear la cancha', {
+                    extensions: { code: 'INTERNAL_SERVER_ERROR' },
+                });
             }
         },
         actualizarCancha: async (_, { id, input, disponible }, ctx) => {
@@ -369,22 +371,20 @@ export const AdminResolvers = {
             // Guardar y retornar la tarea
         },
         eliminarCancha: async (_, { id }, ctx) => {
-            console.log(id);
             if (!ctx.usuario) {
                 throw new GraphQLError('Cancha No autenticada', {
                     extensions: { code: 'UNAUTHENTICATED' },
                 });
             }
-            //si la tarea existe o no
             let cancha = await Cancha.findById(id);
             if (!cancha) {
                 throw new Error('Cancha no encontrada');
             }
-            // Si la persona que edita es o no
             if (cancha.creador.toString() !== ctx.usuario.id) {
                 throw new Error('No tienes las credenciales ');
             }
             await Cancha.findOneAndDelete({ _id: id });
+            await Establecimiento.findByIdAndUpdate(cancha.establecimiento, { $inc: { numeroCanchas: -1 } });
             return "Cancha eliminada";
         },
         eliminarMiReserva: async (_, { id, establecimiento }, ctx) => {

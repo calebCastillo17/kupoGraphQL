@@ -17,7 +17,7 @@ import cron from 'node-cron';
 
 
 // Programa el envío de notificaciones cada hora
-cron.schedule('28 * * * *', async() => {
+cron.schedule('23 * * * *', async() => {
   // Lógica para enviar las notificaciones push aquí
   const obtenerMisReservasNot = async () => {
     const now = new Date();
@@ -32,8 +32,6 @@ cron.schedule('28 * * * *', async() => {
       .populate('cliente', 'notificaciones_token') // Realiza la operación de populate para cargar el campo "tokenNotificacion" del cliente
       .sort({ fecha: 1 })
       .exec();
-   
-
       const clientesAEniar = reservas.map(reserva => reserva.cliente.notificaciones_token);
     return clientesAEniar;
     }
@@ -85,51 +83,51 @@ export const ImperiotResolvers = {
         },
 
         
-        obtenerEstablecimientosFilter: async (_, { nombre, ubicacion, metros, limit, offset }, ctx) => {
-            console.log('obten', nombre, ubicacion, metros, limit, offset);
+        // obtenerEstablecimientosFilter: async (_, { nombre, ubicacion, metros, limit, offset }, ctx) => {
+        //     console.log('obten', nombre, ubicacion, metros, limit, offset);
 
-            const filter: any = {};
+        //     const filter: any = {};
 
-            if (nombre) {
-                filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
-            }
+        //     if (nombre) {
+        //         filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
+        //     }
 
-            let aggregationPipeline = [];
+        //     let aggregationPipeline = [];
 
-            if (ubicacion) {
-                aggregationPipeline.push({
-                    $geoNear: {
-                        near: {
-                            type: 'Point',
-                            coordinates: [ubicacion.latitude, ubicacion.longitude],
-                        },
-                        distanceField: 'distancia',
-                        maxDistance: metros,
-                        spherical: true,
-                    },
-                });
-            }
+        //     if (ubicacion) {
+        //         aggregationPipeline.push({
+        //             $geoNear: {
+        //                 near: {
+        //                     type: 'Point',
+        //                     coordinates: [ubicacion.latitude, ubicacion.longitude],
+        //                 },
+        //                 distanceField: 'distancia',
+        //                 maxDistance: metros,
+        //                 spherical: true,
+        //             },
+        //         });
+        //     }
 
-            aggregationPipeline = [
-                ...aggregationPipeline,
-                { $sort: {
-                    valoracion: -1,
-                    },},
-                { $skip: offset },
-                { $limit: limit },
-            ];
+        //     aggregationPipeline = [
+        //         ...aggregationPipeline,
+        //         { $sort: {
+        //             valoracion: -1,
+        //             },},
+        //         { $skip: offset },
+        //         { $limit: limit },
+        //     ];
 
-            const establecimientos = await Establecimiento.aggregate([
-                { $match: filter },
-                ...aggregationPipeline,
-            ]);
+        //     const establecimientos = await Establecimiento.aggregate([
+        //         { $match: filter },
+        //         ...aggregationPipeline,
+        //     ]);
 
-            establecimientos.forEach((estab) => {
-                console.log(estab.nombre, estab.distancia,'valoracion:', estab.valoracion);
-            });
+        //     establecimientos.forEach((estab) => {
+        //         console.log(estab.nombre, estab.distancia);
+        //     });
 
-            return establecimientos;
-        },
+        //     return establecimientos;
+        // },
     },
     Mutation:{ 
 

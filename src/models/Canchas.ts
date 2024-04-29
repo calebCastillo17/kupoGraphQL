@@ -26,6 +26,7 @@ const CanchaSchema = new Schema({
             default: 0
         }
     },
+    
     imagen:{
         type:String,
         require:true,

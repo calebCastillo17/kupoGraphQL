@@ -61,12 +61,6 @@ export const  ClienteResolvers = {
                     },
                 });
             }
-            // Agregar paso de ordenación por valoración de mayor a menor
-            // aggregationPipeline.push({
-            //     $sort: {
-            //     valoracion: -1,
-            //     },
-            // });
             aggregationPipeline = [
                 ...aggregationPipeline,
                 { $sort: {
@@ -87,36 +81,7 @@ export const  ClienteResolvers = {
 
             return establecimientos;
         },
-        // obtenerEstablecimientosFilter: async (_, {nombre,ubicacion, metros, limit, offset}, ctx) => {
-        //     console.log('obtenerrrrrrrrrrrrrr', nombre,ubicacion, metros, limit, offset)
-        //     const skip = (page - 1) * limit;
-
-        //     const filter: any = {}
-        //         if(nombre){
-        //         filter.nombre ={ $regex: new RegExp(`.*${nombre}`, 'i') };
-        //         otra opcion `\\b${nombre}\\w*`
-        //     }
-        //     if(ubicacion){
-        //         filter.ubicacion =  {
-        //             $nearSphere: {
-        //               $geometry: {
-        //                 type: 'Point',
-        //                 coordinates: [ubicacion.latitude,ubicacion.longitude]
-        //               },
-        //               $maxDistance: metros
-        //             }
-        //           }
-        //     }
-
-        //     const establecimiento = await Establecimiento.find(filter).skip(offset).limit(limit);
-
-        //     establecimiento.map((estab) => (
-        //             console.log(estab.nombre)
-        //     ))
-
-        //       return establecimiento;
-        // },
-
+    
 
           obtenerEstablecimientosDisponibles: async (_, { fecha, offset, limit, filtroNombre, ubicacion, metros }) => {
             // Calcular el valor de salto (skip) en función de la paginación
@@ -287,7 +252,7 @@ export const  ClienteResolvers = {
                 console.log('clienteee ' , user)
                 return {
                 user,
-                accessToken:{ token: crearTokenCliente(existeCliente, process.env.PALABRATOKEN, '20m')},
+                accessToken:{ token: crearTokenCliente(existeCliente, process.env.PALABRATOKEN, '2m')},
                 refreshToken: {token: crearTokenCliente(existeCliente, process.env.PALABRATOKEN, '7d' )}
 
                 }
@@ -340,7 +305,7 @@ export const  ClienteResolvers = {
               const usuario = jwt.verify(refreshToken, process.env.PALABRATOKEN);
                 console.log(usuario)
               // Generar un nuevo token de acceso
-              const accessToken = crearTokenCliente(usuario, process.env.PALABRATOKEN,'1h');
+              const accessToken = crearTokenCliente(usuario, process.env.PALABRATOKEN,'2m');
 
               return { token: accessToken};
             } catch (error) {
@@ -383,7 +348,7 @@ export const  ClienteResolvers = {
 
         editarUsuarioCliente: async (_,{ input}, ctx) => {
                 if(!ctx.usuario){
-                    throw new GraphQLError('Cliente No autenticado', {
+                    throw new GraphQLError('Usuario No autenticado', {
                         extensions: { code: 'UNAUTHENTICATED'},
                     });
 
@@ -401,7 +366,7 @@ export const  ClienteResolvers = {
         },
         editarPeloteroCliente: async (_,{ input}, ctx) => {
             if(!ctx.usuario){
-                throw new GraphQLError('Cliente No autenticado', {
+                throw new GraphQLError('Usuario No autenticado', {
                     extensions: { code: 'UNAUTHENTICATED'},
                 });
 
