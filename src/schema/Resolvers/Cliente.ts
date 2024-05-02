@@ -87,6 +87,7 @@ export const  ClienteResolvers = {
             // Calcular el valor de salto (skip) en función de la paginación
             const skip = (offset - 1) * limit;
              console.log( fecha,  offset, limit, ubicacion, metros )
+             console.log('la hora ingresada es: ' , (new Date(fecha).getHours())*60)
 
              const pipeline = [];
 
