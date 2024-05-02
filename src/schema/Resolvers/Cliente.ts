@@ -10,7 +10,9 @@ import { PubSub } from "graphql-subscriptions";
 import mercadopago from "mercadopago";
 import mailer from "../../config/mailer.js";
 import SmsTwilioSend from "../../services/SmsTwilio.js";
+import { format, toZonedTime } from 'date-fns-tz'
 
+// Función para normalizar una fecha a una zona horaria específica
 
 dotenv.config();
 
@@ -86,8 +88,14 @@ export const  ClienteResolvers = {
           obtenerEstablecimientosDisponibles: async (_, { fecha, offset, limit, filtroNombre, ubicacion, metros }) => {
             // Calcular el valor de salto (skip) en función de la paginación
             const skip = (offset - 1) * limit;
-             console.log( fecha,  offset, limit, ubicacion, metros )
-             console.log('la hora ingresada es: ' , (new Date(fecha).getHours())*60)
+            console.log( fecha,  offset, limit, ubicacion, metros )
+            const peruDate = toZonedTime(fecha, 'America/Lima')
+            // console.log('fecha formateaada', peruDate)
+            // console.log('la hora ingresada es: ' , (new Date(peruDate).getHours())*60)
+            const fechaFormat = new Date(fecha)
+            const hora: number = fechaFormat.getUTCHours();
+
+            console.log('fecha formateaada', hora)
 
              const pipeline = [];
 
@@ -148,14 +156,14 @@ export const  ClienteResolvers = {
                             if: { $gte: ['$horarioCierre', '$horarioApertura'] },
                             then: {
                                 $and: [
-                                    { $lte: ['$horarioApertura', (new Date(fecha).getHours())*60] },
-                                    { $gte: ['$horarioCierre', (new Date(fecha).getHours() + 1)*60] }
+                                    { $lte: ['$horarioApertura', (hora)*60] },
+                                    { $gte: ['$horarioCierre', (hora)*60] }
                                 ]
                             },
                             else: {
                                 $or: [
-                                    { $lte: ['$horarioApertura', (new Date(fecha).getHours())*60] },
-                                    { $gte: ['$horarioCierre', (new Date(fecha).getHours() + 1)*60] }
+                                    { $lte: ['$horarioApertura', (hora)*60] },
+                                    { $gte: ['$horarioCierre', (hora)*60] }
                                 ]
                             }
                         }

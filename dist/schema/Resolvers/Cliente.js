@@ -9,6 +9,8 @@ import dotenv from 'dotenv';
 import { PubSub } from "graphql-subscriptions";
 import mercadopago from "mercadopago";
 import SmsTwilioSend from "../../services/SmsTwilio.js";
+import { toZonedTime } from 'date-fns-tz';
+// Función para normalizar una fecha a una zona horaria específica
 dotenv.config();
 const pubsub = new PubSub();
 mercadopago.configure({
@@ -68,7 +70,12 @@ export const ClienteResolvers = {
             // Calcular el valor de salto (skip) en función de la paginación
             const skip = (offset - 1) * limit;
             console.log(fecha, offset, limit, ubicacion, metros);
-            console.log('la hora ingresada es: ', (new Date(fecha).getHours()) * 60);
+            const peruDate = toZonedTime(fecha, 'America/Lima');
+            // console.log('fecha formateaada', peruDate)
+            // console.log('la hora ingresada es: ' , (new Date(peruDate).getHours())*60)
+            const fechaFormat = new Date(fecha);
+            const hora = fechaFormat.getUTCHours();
+            console.log('fecha formateaada', hora);
             const pipeline = [];
             if (ubicacion) {
                 pipeline.push({
