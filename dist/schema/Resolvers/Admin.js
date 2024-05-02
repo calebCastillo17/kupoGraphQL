@@ -182,8 +182,8 @@ export const AdminResolvers = {
             }
             return {
                 user: user,
-                accessToken: { token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '10m') },
-                refreshToken: { token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '10m') }
+                accessToken: { token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '1h') },
+                refreshToken: { token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '7d') }
             };
         },
         refreshAccessTokenAdmin: (parent, { refreshToken }) => {
@@ -192,7 +192,7 @@ export const AdminResolvers = {
                 const usuario = jwt.verify(refreshToken, process.env.PALABRATOKEN);
                 console.log(usuario);
                 // Generar un nuevo token de acceso
-                const accessToken = crearTokenAdmin(usuario, process.env.PALABRATOKEN, '10m');
+                const accessToken = crearTokenAdmin(usuario, process.env.PALABRATOKEN, '1h');
                 return { token: accessToken };
             }
             catch (error) {

@@ -115,7 +115,7 @@ export const  ClienteResolvers = {
                                     $and: [
                                         { $eq: ['$establecimiento', '$$establecimientoId'] },
                                         { $eq: ['$fecha', new Date(fecha)] },
-                                        { $eq: ['$estado', 'solicitud'] }, // Agregar el filtro de estado 'aceptado'
+                                        { $eq: ['$estado', 'noVisto'] }, // Agregar el filtro de estado 'aceptado'
                                     ],
                                 },
                             },
@@ -139,6 +139,28 @@ export const  ClienteResolvers = {
                     },
 
             })
+            ////////////////RESPETAR EL HORARIO DE SALIDA Y ENTRADA////////
+            pipeline.push({
+                $match: {
+                    $expr: {
+                        $cond: {
+                            if: { $gte: ['$horarioCierre', '$horarioApertura'] },
+                            then: {
+                                $and: [
+                                    { $lte: ['$horarioApertura', (new Date(fecha).getHours())*60] },
+                                    { $gte: ['$horarioCierre', (new Date(fecha).getHours() + 1)*60] }
+                                ]
+                            },
+                            else: {
+                                $or: [
+                                    { $lte: ['$horarioApertura', (new Date(fecha).getHours())*60] },
+                                    { $gte: ['$horarioCierre', (new Date(fecha).getHours() + 1)*60] }
+                                ]
+                            }
+                        }
+                    }
+                }
+            });
             pipeline.push({$skip:offset})
             pipeline.push({$limit: limit})
 
@@ -422,22 +444,51 @@ export const  ClienteResolvers = {
 
 
 
-        nuevaReserva: async (_,{ userId, input}, ctx) => {
-                console.log('desde relverexdxs', input)
-                try {
-                    const reserva = new Reserva (input)
-                // // Asociar al creador
-                    reserva.cliente = userId
-
-
-                    //almacenarlo en DB.
-                    const resultado = await reserva.save();
-                    pubsub.publish(`RESERVA_${input.establecimiento}`, {nuevaReservacion: resultado})
-                    return resultado
-                } catch (error) {
-                    console.log(error)
+        nuevaReserva: async (_, { userId, input }, ctx) => {
+            console.log('desde nueva reserva', input);
+            try {
+                // Verificar si ya existe una reserva para la misma hora en el mismo establecimiento y espacio alquilado
+                const reservaExistente = await Reserva.findOne({
+                    establecimiento: input.establecimiento,
+                    espacioAlquilado: input.espacioAlquilado,
+                    fecha: input.fecha,
+                    estado: 'noVisto' // Solo considerar reservas aceptadas
+                });
+        
+                if (reservaExistente) {
+                    // Si ya existe una reserva para la misma hora y espacio, lanzar un error
+                    console.log('ya existe esta reserva')
+                    throw new GraphQLError('Ya existe una reserva para este establecimiento y cancha en esta hora.');
+                    
                 }
+                            // Verificar si el usuario ya tiene más de dos reservas activas
+                const reservasActivas = await Reserva.find({
+                    cliente: userId,
+                    fecha: { $gt: new Date() } // Fecha mayor que la actual
+                });
+
+                if (reservasActivas.length >= 2) {
+                    // Si el usuario ya tiene más de dos reservas activas, lanzar un error
+                    throw new GraphQLError('Ya tienes demasiadas reservas activas.');
+                }
+                // Crear la nueva reserva
+                const nuevaReserva = new Reserva(input);
+                nuevaReserva.cliente = userId;
+        
+                // Almacenar la reserva en la base de datos
+                const resultado = await nuevaReserva.save();
+        
+                // Publicar evento de nueva reserva
+                pubsub.publish(`RESERVA_${input.establecimiento}`, { nuevaReservacion: resultado });
+        
+                console.log('Reserva realizada:', resultado);
+                return resultado;
+            } catch (error) {
+                console.log(error);
+                throw error; // Relanzar el error para que sea manejado por GraphQL
+            }
         },
+
         eliminarReserva:async (_,{id, clienteId}, ctx) => {
 
             let reserva = await Reserva.findById(id);
