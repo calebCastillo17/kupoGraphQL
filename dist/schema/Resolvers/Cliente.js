@@ -70,12 +70,13 @@ export const ClienteResolvers = {
             // Calcular el valor de salto (skip) en función de la paginación
             const skip = (offset - 1) * limit;
             console.log(fecha, offset, limit, ubicacion, metros);
-            const peruDate = toZonedTime(fecha, 'America/Lima');
-            // console.log('fecha formateaada', peruDate)
-            // console.log('la hora ingresada es: ' , (new Date(peruDate).getHours())*60)
-            const fechaFormat = new Date(fecha);
-            const hora = fechaFormat.getUTCHours();
-            console.log('fecha formateaada', hora);
+            const peruDate = toZonedTime(new Date(fecha), 'America/Lima');
+            console.log('fecha formateaada', peruDate);
+            console.log('la hora ingresada es: ', (new Date(peruDate).getHours()) * 60);
+            const hora = (new Date(peruDate).getHours());
+            // const fechaFormat = new Date(fecha)
+            // const hora: number = fechaFormat.getUTCHours();
+            // console.log('fecha formateaada', hora)
             const pipeline = [];
             if (ubicacion) {
                 pipeline.push({
@@ -130,14 +131,14 @@ export const ClienteResolvers = {
                             if: { $gte: ['$horarioCierre', '$horarioApertura'] },
                             then: {
                                 $and: [
-                                    { $lte: ['$horarioApertura', (new Date(fecha).getHours()) * 60] },
-                                    { $gte: ['$horarioCierre', (new Date(fecha).getHours() + 1) * 60] }
+                                    { $lte: ['$horarioApertura', (hora) * 60] },
+                                    { $gte: ['$horarioCierre', (hora) * 60] }
                                 ]
                             },
                             else: {
                                 $or: [
-                                    { $lte: ['$horarioApertura', (new Date(fecha).getHours()) * 60] },
-                                    { $gte: ['$horarioCierre', (new Date(fecha).getHours() + 1) * 60] }
+                                    { $lte: ['$horarioApertura', (hora) * 60] },
+                                    { $gte: ['$horarioCierre', (hora) * 60] }
                                 ]
                             }
                         }
