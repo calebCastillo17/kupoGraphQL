@@ -14,13 +14,13 @@ const CanchaSchema = new Schema({
             type: Number,
             require: true,
             trim: true,
-            default: 0
+            default: null
         },
         noche: {
             type: Number,
             require: true,
             trim: true,
-            default: 0
+            default: null
         }
     },
     imagen: {

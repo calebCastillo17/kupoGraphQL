@@ -158,13 +158,13 @@ export const  ClienteResolvers = {
                             then: {
                                 $and: [
                                     { $lte: ['$horarioApertura', (hora)*60] },
-                                    { $gte: ['$horarioCierre', (hora)*60] }
+                                    { $gte: ['$horarioCierre', (hora+1)*60] }
                                 ]
                             },
                             else: {
                                 $or: [
                                     { $lte: ['$horarioApertura', (hora)*60] },
-                                    { $gte: ['$horarioCierre', (hora)*60] }
+                                    { $gte: ['$horarioCierre', (hora+1)*60] }
                                 ]
                             }
                         }
@@ -204,14 +204,19 @@ export const  ClienteResolvers = {
             return canchas;
         },
 
-        obtenerReservasPorEstab: async (_, {establecimientoId, fechaMin, fechaMax}, ctx) => {
+       
+        obtenerReservasPorEstab: async (_, { establecimientoId, fechaMin, fechaMax }, ctx) => {
             console.log('mis reservas id', establecimientoId)
             const now = new Date();
-            if(!fechaMin){
+            if (!fechaMin) {
                 fechaMin = now
             }
             const filtroFecha = fechaMax ? { $gte: fechaMin, $lte: fechaMax } : { $gte: fechaMin };
-            const reservas =  await Reserva.find({establecimiento:establecimientoId, fecha: filtroFecha, estado:'aceptado'}).sort({ fecha: 1 }).exec();
+            const reservas = await Reserva.find({
+                establecimiento: establecimientoId,
+                fecha: filtroFecha,
+                estado: { $ne: 'denegado' } // Filtra las reservas donde el estado no sea 'denegado'
+            }).sort({ fecha: 1 }).exec();
             return reservas;
         },
 
@@ -265,7 +270,7 @@ export const  ClienteResolvers = {
         },
         autenticarCliente: async (_, {input}, ctx) => {
                 const { password, telefono} = input;
-
+                console.log('tus credenciales son', telefono, password)
                 //revisar si el usuario existe
                 const existeCliente = await Cliente.findOne({telefono})
 
@@ -462,7 +467,7 @@ export const  ClienteResolvers = {
                     establecimiento: input.establecimiento,
                     espacioAlquilado: input.espacioAlquilado,
                     fecha: input.fecha,
-                    estado: 'noVisto' // Solo considerar reservas aceptadas
+                    estado: { $nin: ['denegado', 'anulado'] } // Excluir reservas con estado 'denegado' y 'anulado'
                 });
         
                 if (reservaExistente) {
@@ -477,7 +482,7 @@ export const  ClienteResolvers = {
                     fecha: { $gt: new Date() } // Fecha mayor que la actual
                 });
 
-                if (reservasActivas.length >= 2) {
+                if (reservasActivas.length >= 20) {
                     // Si el usuario ya tiene más de dos reservas activas, lanzar un error
                     throw new GraphQLError('Ya tienes demasiadas reservas activas.');
                 }

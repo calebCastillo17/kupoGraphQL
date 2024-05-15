@@ -60,7 +60,8 @@ export const AdminResolvers = {
         obtenerMisReservas: async (_, { establecimientoId }, ctx) => {
             console.log('mis reservas id', establecimientoId);
             const now = new Date();
-            const reservas = await Reserva.find({ establecimiento: establecimientoId, fecha: { $gte: now }, estado: { $ne: 'denegado' } }).sort({ fecha: 1 }).exec();
+            // const reservas =  await Reserva.find({establecimiento:establecimientoId, fecha: { $gte: now }, estado: { $ne: 'denegado' }}).sort({ fecha: 1 }).exec();
+            const reservas = await Reserva.find({ establecimiento: establecimientoId, fecha: { $gte: now } }).sort({ fecha: 1 }).exec();
             return reservas;
         },
         encontrarMiEstablecimientoPorId: async (_, { id }, ctx) => {
@@ -85,9 +86,9 @@ export const AdminResolvers = {
                 .exec();
             return reservas;
         },
-        encontrarCliente: async (_, { nombreUsuario }, ctx) => {
-            console.log('obtenerrrrrrrrrrrrrr', nombreUsuario);
-            const cliente = await Cliente.findOne({ nombreUsuario });
+        encontrarCliente: async (_, { clienteId }, ctx) => {
+            console.log('obtenerrrrrrrrrrrrrr', clienteId);
+            const cliente = await Cliente.findById(clienteId);
             return cliente;
         }
     },

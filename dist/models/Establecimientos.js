@@ -57,6 +57,11 @@ const EstablecimientosSchema = new Schema({
         default: true,
         required: true,
     },
+    reservable: {
+        type: Boolean,
+        default: true,
+        required: true,
+    },
     notificaciones_token: {
         type: String,
         trim: true,
@@ -72,8 +77,14 @@ const EstablecimientosSchema = new Schema({
     },
     creador: {
         type: Schema.Types.ObjectId,
-        ref: 'Admin',
         required: true,
+        refPath: 'creadorTipo', // Referencia dinámica al tipo de creador
+    },
+    creadorTipo: {
+        type: String,
+        default: 'Admin',
+        required: true,
+        enum: ['Admin', 'Imperiot'] // Enumera los tipos de usuarios permitidos
     },
     creado: {
         type: Date,

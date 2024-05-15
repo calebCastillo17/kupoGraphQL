@@ -15,10 +15,15 @@ interface IEstablecimiento extends Document {
     coordinates: number[];
   };
   disponible: boolean;
+  reservable: boolean;
   premium: boolean;
   notificaciones_token: string;
   valoracion: number; 
-  creador: Schema.Types.ObjectId;
+  creador: { 
+    type: Schema.Types.ObjectId; 
+    refPath: 'creadorTipo'; // Referencia dinámica al tipo de creador
+  };
+  creadorTipo: string; // Tipo de usuario que creó el establecimiento
   creado: Date;
 }
 
@@ -80,6 +85,11 @@ const EstablecimientosSchema = new Schema<IEstablecimiento>({
     default: true,
     required: true,
   },
+  reservable: {
+    type: Boolean,
+    default: true,
+    required: true,
+  },
   notificaciones_token: {
     type: String,
     trim: true,
@@ -95,8 +105,14 @@ const EstablecimientosSchema = new Schema<IEstablecimiento>({
   },
   creador: {
     type: Schema.Types.ObjectId,
-    ref: 'Admin',
     required: true,
+    refPath: 'creadorTipo', // Referencia dinámica al tipo de creador
+  },
+  creadorTipo: {
+    type: String,
+    default: 'Admin',
+    required: true,
+    enum: ['Admin', 'Imperiot'] // Enumera los tipos de usuarios permitidos
   },
   creado: {
     type: Date,

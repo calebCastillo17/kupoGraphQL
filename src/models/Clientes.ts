@@ -126,7 +126,6 @@ const ClientesSchema = new Schema<Cliente>({
         required: true,
       },
     lugar: {
-   
             pais: { type: String },
             nivel_1: { type: String },
             nivel_2: { type: String },

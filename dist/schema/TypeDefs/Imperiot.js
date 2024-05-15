@@ -3,12 +3,13 @@ export const ImperiotTypeDefs = `#graphql
 
   # This "Book" type defines the queryable fields for every book in our data source.
   
-      
+  scalar FileUpload
     type Cliente {
         nombre: String
         apellido:String
         email: String
         id: ID
+
     }
     type Admin {
         nombre: String
@@ -30,12 +31,16 @@ export const ImperiotTypeDefs = `#graphql
     }
     
     type  Query {
-        obtenerClientes: [Cliente]
+        obtenerClientes(input: UsuarioBusquedaInput, offset:Int, limit:Int): [User]
         obtenerAdmins: [Admin]
-
     }
 
-   
+    input UsuarioBusquedaInput {
+        nombre: String
+        apellido: String
+        nombreUsuario:String
+    }
+
     input ImperiotInput {
         nombre: String!
         apellido: String!
@@ -53,7 +58,7 @@ export const ImperiotTypeDefs = `#graphql
         # imperiots
         crearImperiot (input: ImperiotInput): String
         autenticarImperiot(input: AutenticarInput) : Token
-
+        singleUpload(file:String): String
     }
     
  

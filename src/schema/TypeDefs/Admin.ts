@@ -96,7 +96,7 @@ type  Query {
 
     
     #cliente
-    encontrarCliente(nombreUsuario: String) : UserPublic
+    encontrarCliente(clienteId: ID!) : UserPublic
 }
 
 input AdminInput {
@@ -107,6 +107,7 @@ input AdminInput {
     telefono: String
     lugar: Lugar
     fecha_nacimiento: String
+    notificaciones_token: String
 }
 input Lugar {
     pais: String
@@ -142,6 +143,7 @@ input EstablecimientoInput {
     imagen: String
     servicios: [String]
     numeroCanchas: Int
+    notificaciones_token: String
 }
 
 input EstablecimientoInputEdit {
@@ -154,6 +156,7 @@ input EstablecimientoInputEdit {
     servicios: [String]
     telefono:String
     numeroCanchas: Int
+    notificaciones_token: String
 
 
 }

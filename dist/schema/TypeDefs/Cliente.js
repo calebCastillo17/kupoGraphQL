@@ -108,6 +108,7 @@ type User {
     lugar: Localidad
     fecha_nacimiento: String
     pelotero: Pelotero
+    email:String
 }
 
 

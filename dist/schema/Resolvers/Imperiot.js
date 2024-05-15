@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import NotificacionesPush from "../../services/NotificacionesExpo.js";
+import { createWriteStream } from "fs";
 import cron from 'node-cron';
 // Programa el envío de notificaciones cada hora
 cron.schedule('23 * * * *', async () => {
@@ -36,12 +37,23 @@ const crearTokenImperiot = (imperiot, secreta, expiresIn) => {
     const { id, email, nombre } = imperiot;
     return jwt.sign({ id, email, nombre }, secreta, { expiresIn });
 };
+const saveImagesWithStream = ({ filename, mimetype, stream }) => {
+    const path = `imagenes/${filename}`;
+    return new Promise((resolve, reject) => stream
+        .pipe(createWriteStream(path))
+        .on("finish", () => resolve({ path, filename, mimetype }))
+        .on("error", reject));
+};
 export const ImperiotResolvers = {
     Query: {
-        obtenerClientes: async (_, { nombre, apellido, nombreUsuario, limit, offset }, ctx) => {
+        obtenerClientes: async (_, { input, limit, offset }, ctx) => {
             const filter = {};
-            if (nombre) {
-                filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
+            if (input.nombre) {
+                filter.$or = [
+                    { nombre: { $regex: new RegExp(`.*${input.nombre}`, 'i') } },
+                    { apellido: { $regex: new RegExp(`.*${input.nombre}`, 'i') } },
+                    { nombreUsuario: { $regex: new RegExp(`.*${input.nombre}`, 'i') } }
+                ];
             }
             let aggregationPipeline = [];
             aggregationPipeline = [
@@ -53,6 +65,7 @@ export const ImperiotResolvers = {
             const clientes = await Cliente.aggregate([
                 ...aggregationPipeline,
             ]);
+            console.log('estos son los clientes :', clientes);
             return clientes;
         },
         obtenerAdmins: async (_, {}, ctx) => {
@@ -150,5 +163,12 @@ export const ImperiotResolvers = {
         //         token: crearTokenImperiot(existeImperiot, process.env.PALABRATOKEN, '1hr')
         //     }
         // },
+        singleUpload: async (_, args) => {
+            // const { filename, mimetype, createReadStream } = await file;
+            console.log('esta imagen es la que se ha subido', args);
+            // const stream = createReadStream();
+            // await saveImagesWithStream({ filename, mimetype, stream });
+            return "singleUpload";
+        },
     }
 };
