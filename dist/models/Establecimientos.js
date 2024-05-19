@@ -5,11 +5,6 @@ const EstablecimientosSchema = new Schema({
         required: true,
         trim: true,
     },
-    descripcion: {
-        type: String,
-        required: true,
-        trim: true,
-    },
     direccion: {
         type: String,
         required: true,

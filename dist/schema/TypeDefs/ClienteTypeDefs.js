@@ -46,7 +46,6 @@ type EstablecimientoAltoque {
 type Establecimiento { 
     nombre: String
     id: ID
-    descripcion: String
     direccion: String
     telefono: String
     numeroCanchas: Int

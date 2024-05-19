@@ -22,14 +22,12 @@ export  const ImperiotTypeDefs = `#graphql
         id: ID 
         nombre: String
         creador: String
-        descripcion: String
         numeroCanchas: Int
         disponible:Boolean
     }
     type Token{
         token: String
     }
-    
     type  Query {
         obtenerClientes(input: UsuarioBusquedaInput, offset:Int, limit:Int): [User]
         obtenerAdmins: [Admin]
@@ -54,7 +52,6 @@ export  const ImperiotTypeDefs = `#graphql
     }
 
     type Mutation {
-
         # imperiots
         crearImperiot (input: ImperiotInput): String
         autenticarImperiot(input: AutenticarInput) : Token

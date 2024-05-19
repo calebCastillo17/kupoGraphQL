@@ -22,7 +22,6 @@ type EstablecimientoLista {
     nombre: String
     id: ID
     direccion: String
-    descripcion: String
     numeroCanchas: Int
     servicios: [String]
     imagen: String
@@ -55,7 +54,6 @@ type EstablecimientoAltoque {
 type Establecimiento { 
     nombre: String
     id: ID
-    descripcion: String
     direccion: String
     telefono: String
     numeroCanchas: Int
@@ -283,5 +281,6 @@ type Mutation {
 
 type Subscription {
     nuevaReservacion(establecimientoId: ID!): Reserva
+    cambioEstadoMiReservacion(ClienteId: ID!): Reserva
   }
 `;

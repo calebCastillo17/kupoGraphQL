@@ -7,7 +7,6 @@ export  const AdminTypeDefs = `#graphql
     nombre: String
     id: ID
     disponible: Boolean
-    descripcion: String
     imagen: String
     direccion: String
     notificaciones_token: String
@@ -16,7 +15,6 @@ export  const AdminTypeDefs = `#graphql
 type  MiEstablecimiento{ 
     nombre: String
     id: ID
-    descripcion: String
     direccion: String
     telefono: String
     numeroCanchas: Int
@@ -135,7 +133,6 @@ input  AutenticarAdminInput{
 
 input EstablecimientoInput {
     nombre: String!
-    descripcion: String!
     direccion: String!
     telefono: String
     horarioApertura: Int!
@@ -148,7 +145,6 @@ input EstablecimientoInput {
 
 input EstablecimientoInputEdit {
     nombre: String
-    descripcion: String
     direccion: String
     horarioApertura: Int
     horarioCierre: Int
@@ -157,8 +153,6 @@ input EstablecimientoInputEdit {
     telefono:String
     numeroCanchas: Int
     notificaciones_token: String
-
-
 }
 
 input UbicacionInput {

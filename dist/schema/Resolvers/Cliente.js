@@ -1,5 +1,6 @@
 import Establecimiento from "../../models/Establecimientos.js";
 import Cliente from "../../models/Clientes.js";
+import Admin from "../../models/Admins.js";
 import Cancha from "../../models/Canchas.js";
 import Reserva from "../../models/Reservas.js";
 import jwt from 'jsonwebtoken';
@@ -10,6 +11,7 @@ import { PubSub } from "graphql-subscriptions";
 import mercadopago from "mercadopago";
 import SmsTwilioSend from "../../services/SmsTwilio.js";
 import { toZonedTime } from 'date-fns-tz';
+import enviarNotificacion from "../../services/EnviarNotificacionExpo.js";
 // Función para normalizar una fecha a una zona horaria específica
 dotenv.config();
 const pubsub = new PubSub();
@@ -67,16 +69,12 @@ export const ClienteResolvers = {
             return establecimientos;
         },
         obtenerEstablecimientosDisponibles: async (_, { fecha, offset, limit, filtroNombre, ubicacion, metros }) => {
-            // Calcular el valor de salto (skip) en función de la paginación
             const skip = (offset - 1) * limit;
             console.log(fecha, offset, limit, ubicacion, metros);
             const peruDate = toZonedTime(new Date(fecha), 'America/Lima');
             console.log('fecha formateaada', peruDate);
             console.log('la hora ingresada es: ', (new Date(peruDate).getHours()) * 60);
             const hora = (new Date(peruDate).getHours());
-            // const fechaFormat = new Date(fecha)
-            // const hora: number = fechaFormat.getUTCHours();
-            // console.log('fecha formateaada', hora)
             const pipeline = [];
             if (ubicacion) {
                 pipeline.push({
@@ -179,23 +177,39 @@ export const ClienteResolvers = {
             return reservas;
         },
         obtenerReservasRealizadas: async (_, { clienteId }, ctx) => {
-            console.log('mis reservas id', clienteId);
-            const now = new Date();
-            const filtroFecha = { $gte: now };
-            const reservas = await Reserva.find({ cliente: clienteId, fecha: filtroFecha }).sort({ registro: -1 }).exec();
-            return reservas;
+            try {
+                const now = new Date();
+                const filtroFecha = { $gte: now };
+                const reservas = await Reserva.find({ cliente: clienteId, fecha: filtroFecha })
+                    .sort({ registro: -1 })
+                    .populate('establecimiento')
+                    .exec();
+                console.log('reservas realizadas:', reservas);
+                return reservas;
+            }
+            catch (error) {
+                console.error('Error al obtener las reservas realizadas:', error);
+                throw error;
+            }
         },
         obtenerHistorialReservas: async (_, { clienteId, limite, page }, ctx) => {
-            console.log('mis reservas id', clienteId);
-            const now = new Date();
-            const skip = (page - 1) * limite;
-            const filtroFecha = { $lt: now };
-            const reservas = await Reserva.find({ cliente: clienteId, fecha: filtroFecha })
-                .sort({ registro: -1 })
-                .limit(limite)
-                .skip(skip)
-                .exec();
-            return reservas;
+            try {
+                const now = new Date();
+                const skip = (page - 1) * limite;
+                const filtroFecha = { $lt: now };
+                const reservas = await Reserva.find({ cliente: clienteId, fecha: filtroFecha })
+                    .sort({ registro: -1 })
+                    .limit(limite)
+                    .skip(skip)
+                    .populate('establecimiento')
+                    .exec();
+                console.log('historialReservas', reservas);
+                return reservas;
+            }
+            catch (error) {
+                console.error('Error al obtener el historial de reservas:', error);
+                throw error;
+            }
         },
     },
     Mutation: {
@@ -402,8 +416,28 @@ export const ClienteResolvers = {
                 nuevaReserva.cliente = userId;
                 // Almacenar la reserva en la base de datos
                 const resultado = await nuevaReserva.save();
+                // Buscar el establecimiento asociado a la reserva
+                const establecimiento = await Establecimiento.findById(input.establecimiento);
+                if (!establecimiento) {
+                    throw new GraphQLError('Establecimiento no encontrado.');
+                }
+                // Buscar el administrador asociado al establecimiento
+                const administrador = await Admin.findOne({ _id: establecimiento.creador });
+                if (!administrador) {
+                    throw new GraphQLError('Administrador del establecimiento no encontrado.');
+                }
+                const pushToken = administrador.notificaciones_token;
+                if (pushToken) {
+                    const body = 'Nueva reserva realizada';
+                    const data = {
+                        reservaId: resultado._id,
+                        mensaje: 'Nueva reserva realizada',
+                        url: 'reservas'
+                    };
+                    await enviarNotificacion(pushToken, body, data);
+                }
                 // Publicar evento de nueva reserva
-                pubsub.publish(`RESERVA_${input.establecimiento}`, { nuevaReservacion: resultado });
+                pubsub.publish(`RESERVAS_DE_${input.establecimiento}`, { nuevaReservacion: resultado });
                 console.log('Reserva realizada:', resultado);
                 return resultado;
             }
@@ -489,11 +523,11 @@ export const ClienteResolvers = {
         },
     },
     Reserva: {
-        establecimiento: async (reserva) => {
-            console.log('pasa por resolver reserva');
-            const establecimiento = await Establecimiento.findById(reserva.establecimiento);
-            return establecimiento;
-        },
+    // establecimiento: async (reserva) => {
+    //     console.log('pasa por resolver reserva')
+    //   const establecimiento = await Establecimiento.findById(reserva.establecimiento);
+    //   return establecimiento;
+    // },
     },
     EstablecimientoLista: {
         id: (establecimiento) => establecimiento._id.toString(),
@@ -502,7 +536,7 @@ export const ClienteResolvers = {
         nuevaReservacion: {
             subscribe: (_, { establecimientoId }) => {
                 console.log('subsribiendo a', establecimientoId);
-                return pubsub.asyncIterator(`RESERVA_${establecimientoId}`);
+                return pubsub.asyncIterator(`RESERVAS_DE_${establecimientoId}`);
             }
             //    return context.pubsub.asyncIterator(`NUEVA_NOTIFICACION_${hotelId}`);
         },

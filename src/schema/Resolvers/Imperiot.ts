@@ -7,10 +7,8 @@ import Imperiot from "../../models/Imperiots.js";
 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { GraphQLError } from "graphql";
 import dotenv from 'dotenv';
 import NotificacionesPush from "../../services/NotificacionesExpo.js";
-import ReservaModel from "../../models/Reservas.js";
 import { createWriteStream } from "fs";
 import cron from 'node-cron';
 

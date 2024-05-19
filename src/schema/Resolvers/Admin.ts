@@ -9,7 +9,9 @@ import { GraphQLError } from "graphql";
 import mailer from "../../config/mailer.js";
 import NotificacionesPush from "../../services/NotificacionesExpo.js";
 import SmsTwilioSend from "../../services/SmsTwilio.js";
-
+import { PubSub } from "graphql-subscriptions";
+import enviarNotificacion from "../../services/EnviarNotificacionExpo.js";
+const pubsub = new PubSub()
 
 
 const crearTokenAdmin = (admin, secreta, expiresIn) => {
@@ -222,7 +224,7 @@ export const AdminResolvers = {
 
                 return {
                     user:user,
-                    accessToken:{ token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '1h')},
+                    accessToken:{ token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '17h')},
                     refreshToken: {token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '7d' )}
                 }
         },
@@ -234,7 +236,7 @@ export const AdminResolvers = {
               const usuario = jwt.verify(refreshToken, process.env.PALABRATOKEN);
                 console.log(usuario)
               // Generar un nuevo token de acceso
-              const accessToken = crearTokenAdmin(usuario, process.env.PALABRATOKEN,'1h');
+              const accessToken = crearTokenAdmin(usuario, process.env.PALABRATOKEN,'17h');
 
               return { token: accessToken};
             } catch (error) {
@@ -361,20 +363,36 @@ export const AdminResolvers = {
             return establecimiento
         },
 
-        eliminarEstablecimiento: async (_,{id}, ctx) => {
-            let establecimiento = await Establecimiento.findById(id);
-
-            if (!establecimiento){
-                throw new Error('establecimiento no encontrada');
+        eliminarEstablecimiento: async (_, { id }, ctx) => {
+            if (!ctx.usuario) {
+              throw new GraphQLError('Admin No autenticado', {
+                extensions: { code: 'UNAUTHENTICATED' },
+              });
             }
-
-            if(establecimiento.creador.toString() !== ctx.usuario.id){
-                throw new Error('No tienes las credenciales ');
+            try {
+              // Verificar si el usuario tiene permiso para eliminar el establecimiento
+              const establecimiento = await Establecimiento.findById(id);
+              if (!establecimiento) {
+                throw new Error('Establecimiento no encontrado');
+              }
+              if (establecimiento.creador.toString() !== ctx.usuario.id) {
+                throw new Error('No tienes las credenciales');
+              }
+      
+              // Eliminar todas las canchas asociadas al establecimiento
+              await Cancha.deleteMany({ establecimiento: id });
+      
+              // Eliminar el establecimiento
+              await Establecimiento.findByIdAndDelete(id);
+      
+              return "Establecimiento eliminado correctamente";
+            } catch (error) {
+              console.error(error);
+              throw new Error('Error al eliminar el establecimiento');
             }
+          },
 
-            await Establecimiento.findOneAndDelete({_id: id})
-            return "cancha eliminada"
-      },
+
       actualizarTokenNotificacionesEstablecimiento: async (_,{token, establecimientoId}, ctx) => {
         let establecimiento = await Establecimiento.findById(establecimientoId);
 
@@ -478,19 +496,47 @@ export const AdminResolvers = {
 
         let reserva = await Reserva.findById(id);
 
-        console.log(reserva)
+         console.log('es la primera reserva',reserva)
 
         if (!reserva){
             throw new Error('reserva no encontrada');
         }
         // Si la persona que edita es o no
-
         if(reserva.establecimiento.toString() !== establecimiento){
             throw new Error('No tienes las credenciales');
         }
 
-        reserva = await Reserva.findOneAndUpdate({_id:id}, {estado}, {new:true})
-         console.log('verificacion', reserva)
+        reserva = await Reserva.findOneAndUpdate({_id:id}, {estado}, {new:true}).populate('establecimiento')
+        //  console.log('verificacion', reserva)
+
+        if (estado === 'denegado' || estado === 'aceptado') {
+            try {
+              // Obtener el token de notificación del cliente desde la reserva
+              const cliente = await Cliente.findById(reserva.cliente);
+
+              const pushToken = cliente.notificaciones_token;
+              console.log('es la segunda reserva',pushToken)
+
+              if (pushToken) {
+                const body = estado === 'aceptado'? 'Tu reserva ha sido aceptada':  'Tu reserva ha sido rechazada' ;
+                const data = {
+                    reservaId: estado,
+                    mensaje: 'El estado de tu reserva ha sido actualizado',
+                    url: 'reservas_hechas'
+
+                };
+                await enviarNotificacion(pushToken, body, data);
+            }
+              // Enviar la notificación al cliente
+              
+            } catch (error) {
+              console.error('Error al enviar la notificación al cliente:', error);
+            }
+          }
+              console.log('enviando a', `RESERVAS_DE_${reserva.cliente}`)
+              console.log('reserva', `RESERVAS_DE_${reserva.cliente}`)
+        pubsub.publish(`RESERVAS_DE_${reserva.cliente}`, { cambioEstadoMiReservacion: reserva });
+
         return reserva
 
         // Guardar y retornar la tarea
@@ -517,7 +563,7 @@ export const AdminResolvers = {
  },
     MiEstablecimiento: {
         nuevo: (root) => {
-            return root.descripcion
+            return 
         }
 
     },
@@ -529,9 +575,16 @@ export const AdminResolvers = {
         longitude: (root) => {
             return root.coordinates[1]
         }
-
     },
 
 
-
+    Subscription: {
+        cambioEstadoMiReservacion: {
+            subscribe: (_, {ClienteId}) => { 
+              console.log('subsribiendo00 a', `RESERVAS_DE_${ClienteId}`)
+              return pubsub.asyncIterator(`RESERVAS_DE_${ClienteId}`)
+          }
+          //    return context.pubsub.asyncIterator(`NUEVA_NOTIFICACION_${hotelId}`);
+          }
+      },
 }
