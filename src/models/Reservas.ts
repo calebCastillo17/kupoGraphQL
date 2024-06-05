@@ -8,6 +8,7 @@ interface Reserva {
     establecimiento: Schema.Types.ObjectId;
     nombreUsuario: string;
     registro: Date;
+    actualizacion: Date;
     estado: string;
   }
   
@@ -42,6 +43,10 @@ const ReservasSchema = new Schema<Reserva>({
         trim: true
     },
     registro:{
+        type: Date,
+        default: new Date()
+    },
+    actualizacion:{
         type: Date,
         default: new Date()
     },

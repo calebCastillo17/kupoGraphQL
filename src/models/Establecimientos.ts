@@ -14,6 +14,7 @@ interface IEstablecimiento extends Document {
     coordinates: number[];
   };
   disponible: boolean;
+  validado: boolean;
   reservable: boolean;
   premium: boolean;
   notificaciones_token: string;
@@ -77,6 +78,11 @@ const EstablecimientosSchema = new Schema<IEstablecimiento>({
   disponible: {
     type: Boolean,
     default: true,
+    required: true,
+  },
+  validado: {
+    type: Boolean,
+    default: false,
     required: true,
   },
   reservable: {
