@@ -52,6 +52,11 @@ const EstablecimientosSchema = new Schema({
         default: true,
         required: true,
     },
+    validado: {
+        type: Boolean,
+        default: false,
+        required: true,
+    },
     reservable: {
         type: Boolean,
         default: true,

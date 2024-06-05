@@ -55,16 +55,18 @@ export const AdminResolvers = {
             const establecimiento =  await Establecimiento.find({creador: ctx.usuario.id})
             return establecimiento;
         },
-        obtenerMiEstablecimientoSeleccionado: async (_, {establecimientoId}, ctx) => {
-
-            console.log(establecimientoId)
+        obtenerMiEstablecimiento: async (_,{}, ctx) => {
+            console.log('esta obteniendo establecimiento')
             if(!ctx.usuario){
                 throw new GraphQLError('no Autenticado 2', {
                     extensions: { code: 'UNAUTHENTICATED'},
                 });
             }
 
-                const establecimiento =  await Establecimiento.find({creador: ctx.usuario.id}).where('_id').equals(establecimientoId)
+                const establecimiento =  await Establecimiento.findOne({creador: ctx.usuario.id})
+                if(!establecimiento) {
+                    throw new Error('No tienes establecimiento');
+                }
                 return establecimiento;
         },
 
@@ -84,14 +86,35 @@ export const AdminResolvers = {
         },
 
 
-        obtenerMisReservas: async (_, {establecimientoId}, ctx) => {
-            console.log('mis reservas id', establecimientoId)
+        obtenerMisReservas: async (_, {establecimientoId, cancha, fechaMin, fechaMax }, ctx) => {
+            console.log('mis reservas fechas', fechaMin,fechaMax)
             const now = new Date();
-            // const reservas =  await Reserva.find({establecimiento:establecimientoId, fecha: { $gte: now }, estado: { $ne: 'denegado' }}).sort({ fecha: 1 }).exec();
-            const reservas =  await Reserva.find({establecimiento:establecimientoId, fecha: { $gte: now }}).sort({ fecha: 1 }).exec();
+            if (!fechaMin) {
+                fechaMin = now
+            }
+            const filtroFecha = fechaMax ? { $gte: fechaMin, $lte: fechaMax } : { $gte: fechaMin };
+             const reservas = await Reserva.find({
+                establecimiento: establecimientoId,
+                fecha: filtroFecha,
+                espacioAlquilado:cancha,
+                estado: { $ne: 'denegado' } // Filtra las reservas donde el estado no sea 'denegado'
+            }).sort({ fecha: 1 }).exec();
+            // const reservas =  await Reserva.find({establecimiento:establecimientoId, fecha: { $gte: now }}).sort({ fecha: 1 }).exec();
+            console.log('estas son mis reservas ' ,reservas)
             return reservas;
         },
 
+        
+        obtenerMisNuevasReservas: async (_, {establecimientoId}, ctx) => {
+            console.log('mis reservas id', establecimientoId)
+            const now = new Date();
+           
+
+            // const reservas =  await Reserva.find({establecimiento:establecimientoId, fecha: { $gte: now }, estado: { $ne: 'denegado' }}).sort({ fecha: 1 }).exec();
+            const reservas =  await Reserva.find({establecimiento:establecimientoId, estado: 'solicitud', fecha: { $gte: now }}).sort({ fecha: 1 }).exec();
+            console.log('estas son mis reservas ' ,reservas)
+            return reservas;
+        },
 
         encontrarMiEstablecimientoPorId: async (_, {id}, ctx) => {
 
@@ -106,12 +129,12 @@ export const AdminResolvers = {
                 return establecimiento;
         },
 
-        obtenerMiHistorialReservas: async (_, {establecimientoId, limite, page}, ctx) => {
+        obtenerMiHistorialReservas: async (_, {establecimientoId, estado, limite, page}, ctx) => {
             console.log('mis reservas id', establecimientoId)
             const now = new Date();
             const skip = (page - 1) * limite;
             const filtroFecha =  { $lt: now };
-            const reservas =  await Reserva.find({establecimiento: establecimientoId, fecha: filtroFecha})
+            const reservas =  await Reserva.find({establecimiento: establecimientoId, estado: estado,fecha: filtroFecha})
             .sort({ registro: -1 })
             .limit(limite)
             .skip(skip)
@@ -416,8 +439,10 @@ export const AdminResolvers = {
         }
         try {
             const numeroCanchas = await Cancha.countDocuments({ establecimiento: establecimientoId });
-            const nombreCancha = `Cancha ${numeroCanchas + 1}`;
-            const nuevaCancha = new Cancha({ nombre: nombreCancha, establecimiento: establecimientoId, creador: ctx.usuario.id });
+            input.nombre = `Cancha ${numeroCanchas + 1}`;
+            input.establecimiento = establecimientoId
+            input.creador =  ctx.usuario.id
+            const nuevaCancha = new Cancha(input);
             const resultado = await nuevaCancha.save();
     
             console.log('el id del establecimiento',establecimientoId)   // Actualizar el número de canchas en el establecimiento
@@ -520,10 +545,9 @@ export const AdminResolvers = {
               if (pushToken) {
                 const body = estado === 'aceptado'? 'Tu reserva ha sido aceptada':  'Tu reserva ha sido rechazada' ;
                 const data = {
-                    reservaId: estado,
-                    mensaje: 'El estado de tu reserva ha sido actualizado',
+                    estado: estado,
+                    reservaId: reserva.id,
                     url: 'reservas_hechas'
-
                 };
                 await enviarNotificacion(pushToken, body, data);
             }
@@ -546,17 +570,31 @@ export const AdminResolvers = {
     nuevaAutoReserva: async (_,{ userId, input}, ctx) => {
         console.log('desde relverexdxs', input)
             try {
+            const reservaExistente = await Reserva.findOne({
+                    establecimiento: input.establecimiento,
+                    espacioAlquilado: input.espacioAlquilado,
+                    fecha: input.fecha,
+                    estado: { $nin: ['denegado', 'anulado'] } // Excluir reservas con estado 'denegado' y 'anulado'
+            });
+            if (reservaExistente) {
+                    // Si ya existe una reserva para la misma hora y espacio, lanzar un error
+                    console.log('ya existe esta reserva')
+                    throw new GraphQLError('Ya existe una reserva para tu establecimiento y cancha en esta hora.');
+                }
             const reserva = new Reserva (input)
         // // Asociar al creador
             reserva.cliente = userId
 
-
+            
+        
             //almacenarlo en DB.
             const resultado = await reserva.save();
             // pubsub.publish('RESERVA', {nuevaReservacion: resultado})
             return resultado
         } catch (error) {
             console.log(error)
+            throw error; // Relanzar el error para que sea manejado por GraphQL
+
         }
 },
 

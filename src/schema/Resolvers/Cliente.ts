@@ -184,8 +184,111 @@ export const  ClienteResolvers = {
             return establecimiento;
         },
 
+        obtenerEstablecimientos: async (_, { nombre, ubicacion, metros, limit, offset, fecha }) => {
+            console.log('Parametros de entrada:', nombre, ubicacion, metros, limit, offset, fecha);
 
+            const filter:any = {};
+            const pipeline = [];
 
+            if (nombre) {
+                filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
+            }
+
+            if (ubicacion) {
+                pipeline.push({
+                    $geoNear: {
+                        near: {
+                            type: 'Point',
+                            coordinates: [ubicacion.latitude, ubicacion.longitude],
+                        },
+                        distanceField: 'distancia',
+                        maxDistance: metros,
+                        spherical: true,
+                    },
+                });
+            }
+
+            if (fecha) {
+                const peruDate = toZonedTime(new Date(fecha), 'America/Lima');
+                const hora = new Date(peruDate).getHours();
+
+                pipeline.push({
+                    $lookup: {
+                        from: 'reservas',
+                        let: { establecimientoId: '$_id' },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            { $eq: ['$establecimiento', '$$establecimientoId'] },
+                                            { $eq: ['$fecha', new Date(fecha)] },
+                                            { $in: ['$estado', ['aceptado', 'solicitud']] },
+                                        ],
+                                    },
+                                },
+                            },
+                        ],
+                        as: 'reservas',
+                    },
+                });
+
+                pipeline.push({
+                    $match: {
+                        $expr: {
+                            $gt: [
+                                '$numeroCanchas',
+                                { $size: '$reservas' },
+                            ],
+                        },
+                    },
+                });
+
+                pipeline.push({
+                    $match: {
+                        $expr: {
+                            $cond: {
+                                if: { $gte: ['$horarioCierre', '$horarioApertura'] },
+                                then: {
+                                    $and: [
+                                        { $lte: ['$horarioApertura', hora * 60] },
+                                        { $gte: ['$horarioCierre', (hora + 1) * 60] },
+                                    ],
+                                },
+                                else: {
+                                    $or: [
+                                        { $lte: ['$horarioApertura', hora * 60] },
+                                        { $gte: ['$horarioCierre', (hora + 1) * 60] },
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                });
+            }
+
+            pipeline.push({ $match: filter });
+
+            if (!ubicacion) {
+                pipeline.push({ $sort: { nombre: 1 } }); // Ordenar alfabéticamente por nombre
+            }
+
+            pipeline.push({ $skip: offset });
+            pipeline.push({ $limit: limit });
+
+            const establecimientos = await Establecimiento.aggregate(pipeline);
+
+            establecimientos.forEach((estab) => {
+                console.log(estab.nombre, estab.distancia, 'valoracion:', estab.reservas);
+                if (estab.reservas) {
+                    estab.reservas.forEach((reserva) => {
+                        console.log('Reserva:', reserva);
+                    });
+                }
+            });
+
+            return establecimientos;
+        },
 
 
         obtenerCanchasPorEstablecimiento : async (_, {establecimientoId}, ctx) => {
@@ -223,7 +326,7 @@ export const  ClienteResolvers = {
                                              .sort({ registro: -1 })
                                              .populate('establecimiento')
                                              .exec();
-                console.log('reservas realizadas:' , reservas)
+                // console.log('reservas realizadas:' , reservas)
                  return reservas;
             } catch (error) {
                 console.error('Error al obtener las reservas realizadas:', error);
@@ -481,7 +584,6 @@ export const  ClienteResolvers = {
                     // Si ya existe una reserva para la misma hora y espacio, lanzar un error
                     console.log('ya existe esta reserva')
                     throw new GraphQLError('Ya existe una reserva para este establecimiento y cancha en esta hora.');
-                    
                 }
                             // Verificar si el usuario ya tiene más de dos reservas activas
                 const reservasActivas = await Reserva.find({
@@ -489,19 +591,14 @@ export const  ClienteResolvers = {
                     fecha: { $gt: new Date() } // Fecha mayor que la actual
                 });
 
-                if (reservasActivas.length >= 5) {
+                if (reservasActivas.length >= 7) {
                     // Si el usuario ya tiene más de dos reservas activas, lanzar un error
                     throw new GraphQLError('Ya tienes demasiadas reservas activas.');
                 }
                 // Crear la nueva reserva
                 const nuevaReserva = new Reserva(input);
                 nuevaReserva.cliente = userId;
-                
-                // Almacenar la reserva en la base de datos
                 const resultado = await nuevaReserva.save();
-                
-
-                
                 // Buscar el establecimiento asociado a la reserva
                 const establecimiento = await Establecimiento.findById(input.establecimiento);
 
@@ -516,20 +613,28 @@ export const  ClienteResolvers = {
                     throw new GraphQLError('Administrador del establecimiento no encontrado.');
                 }
                 const pushToken = administrador.notificaciones_token;
-                
+                 // Convertir resultado en un objeto que incluye id en lugar de _id
+               
+         
                 if (pushToken) {
+                    let reserva:any = resultado.toObject();
+                    reserva.id = reserva._id;
+                    reserva.__typename=  "Reserva",
+                    delete reserva._id
+                    delete reserva.__v;
+                    delete reserva.establecimiento;
                     const body = 'Nueva reserva realizada';
                     const data = {
-                        reservaId: resultado._id,
+                        reserva: reserva,
+                        estado: reserva.estado,
                         mensaje: 'Nueva reserva realizada',
                         url: 'reservas'
                     };
                     await enviarNotificacion(pushToken, body, data);
                 }
-
                 // Publicar evento de nueva reserva
                 pubsub.publish(`RESERVAS_DE_${input.establecimiento}`, { nuevaReservacion: resultado });
-                console.log('Reserva realizada:', resultado);
+                // console.log('Reserva realizada:', resultado);
                 return resultado;
             } catch (error) {
                 console.log(error);

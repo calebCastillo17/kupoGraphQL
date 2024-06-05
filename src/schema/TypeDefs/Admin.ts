@@ -46,6 +46,7 @@ type MiCancha{
     inhabilitado:[Int]
     ocupado:[Int]
     imagen: String
+    disponible:Boolean
 }
 
 type Reserva {
@@ -56,6 +57,7 @@ type Reserva {
     cliente: String
     establecimiento: Establecimiento
     registro: String
+    actualizacion: String
     estado: String
     nombreUsuario: String
 }
@@ -85,14 +87,14 @@ type Admin{
 
 type  Query {        
     obtenerMisEstablecimientos : [MiEstablecimiento] 
-    obtenerMiEstablecimientoSeleccionado(establecimientoId: ID): [MiEstablecimiento]
+    obtenerMiEstablecimiento: MiEstablecimiento
     obtenerUsuarioAdmin : User
     obtenerMisCanchasPorEstablecimientoFuera(establecimientoId: ID!): [MiCancha] 
-    obtenerMisReservas(establecimientoId: ID!): [Reserva]
+    obtenerMisReservas(establecimientoId: ID!, cancha: String,fechaMin:String, fechaMax: String): [Reserva]
+    obtenerMisNuevasReservas(establecimientoId: ID!): [Reserva]
     encontrarMiEstablecimientoPorId(id:ID!): [MiEstablecimiento]
-    obtenerMiHistorialReservas(establecimientoId: ID!, limite: Int, page:Int): [Reserva]
+    obtenerMiHistorialReservas(establecimientoId: ID!, estado: String, limite: Int, page:Int): [Reserva]
 
-    
     #cliente
     encontrarCliente(clienteId: ID!) : UserPublic
 }

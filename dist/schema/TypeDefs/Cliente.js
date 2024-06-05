@@ -76,6 +76,7 @@ type Reserva {
     espacioAlquilado: String
     cliente: String 
     registro: String
+    actualizacion: String
     estado: String
     nombreUsuario: String
     establecimiento: Establecimiento
@@ -152,6 +153,7 @@ type PagoResultado {
 
 type  Query {
     obtenerEstablecimientosFilter(ubicacion:UbicacionInput, metros: Int, nombre:String, limit:Int, offset: Int ) : [EstablecimientoLista]
+    obtenerEstablecimientos( nombre:String, ubicacion:UbicacionInput, metros: Int,limit:Int, offset: Int, fecha: String) : [EstablecimientoLista]
     obtenerEstablecimientoPorId(establecimientoId: ID) : Establecimiento
     obtenerEstablecimientosDisponibles(fecha: String, offset: Int!, limit: Int!,ubicacion:UbicacionInput,metros: Int): [EstablecimientoLista]
     obtenerCanchasPorEstablecimiento(establecimientoId: ID): [Cancha]
