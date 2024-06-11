@@ -33,6 +33,7 @@ type EstablecimientoLista {
     notificaciones_token: String
     valoracion: Float
     premium: Boolean
+    distancia:Float
 }
 type EstablecimientoAltoque {
     nombre: String
@@ -152,13 +153,11 @@ type PagoResultado {
   }
 
 type  Query {
-    obtenerEstablecimientosFilter(ubicacion:UbicacionInput, metros: Int, nombre:String, limit:Int, offset: Int ) : [EstablecimientoLista]
     obtenerEstablecimientos( nombre:String, ubicacion:UbicacionInput, metros: Int,limit:Int, offset: Int, fecha: String) : [EstablecimientoLista]
     obtenerEstablecimientoPorId(establecimientoId: ID) : Establecimiento
-    obtenerEstablecimientosDisponibles(fecha: String, offset: Int!, limit: Int!,ubicacion:UbicacionInput,metros: Int): [EstablecimientoLista]
     obtenerCanchasPorEstablecimiento(establecimientoId: ID): [Cancha]
-    obtenerReservasPorEstab(establecimientoId: ID!, fechaMin:String, fechaMax: String): [Reserva]
-    obtenerReservasRealizadas(clienteId: ID!): [Reserva]
+    obtenerReservasPorEstab(establecimientoId: ID!,cancha:String, fechaMin:String, fechaMax: String): [Reserva]
+    obtenerReservasRealizadas(clienteId: ID! , fecha:String , limite: Int, page:Int): [Reserva]
     obtenerHistorialReservas(clienteId: ID!, limite: Int, page:Int): [Reserva]
 }
 
@@ -170,6 +169,7 @@ input  ProyectoIDProyecto {
 input ClienteInput {
     nombre: String!
     apellido: String!
+    nombreUsuario: String
     email: String!
     telefono: String
     password:String!

@@ -43,18 +43,6 @@ export const AdminResolvers = {
             return usuario;
         },
 
-        obtenerMisEstablecimientos: async (_, {}, ctx) => {
-
-            if(!ctx.usuario){
-                throw new GraphQLError('no Autenticado', {
-                    extensions: { code: 'UNAUTHENTICATED'},
-                });
-            }
-
-
-            const establecimiento =  await Establecimiento.find({creador: ctx.usuario.id})
-            return establecimiento;
-        },
         obtenerMiEstablecimiento: async (_,{}, ctx) => {
             console.log('esta obteniendo establecimiento')
             if(!ctx.usuario){
@@ -116,31 +104,32 @@ export const AdminResolvers = {
             return reservas;
         },
 
-        encontrarMiEstablecimientoPorId: async (_, {id}, ctx) => {
 
-            if(!ctx.usuario){
-                throw new GraphQLError('no Autenticado 2', {
-                    extensions: { code: 'UNAUTHENTICATED'},
-                });
-            }
-            console.log('encontrando mi estableccimientooooo',id)
-
-                const establecimiento =  await Establecimiento.find({creador: ctx.usuario.id}).where('_id').equals(id)
-                return establecimiento;
-        },
-
-        obtenerMiHistorialReservas: async (_, {establecimientoId, estado, limite, page}, ctx) => {
-            console.log('mis reservas id', establecimientoId)
-            const now = new Date();
+        obtenerMiHistorialReservas: async (_, { establecimientoId, estado, fecha, limite, page }, ctx) => {
+            console.log('mis reservas id', establecimientoId);
             const skip = (page - 1) * limite;
-            const filtroFecha =  { $lt: now };
-            const reservas =  await Reserva.find({establecimiento: establecimientoId, estado: estado,fecha: filtroFecha})
-            .sort({ registro: -1 })
-            .limit(limite)
-            .skip(skip)
-            .exec();
+            let filtroEstado = {};
+            let filtroFechaCliente = {};
+        
+            // Verifica si se especifica un estado
+            if (estado !== null) {
+                filtroEstado = { estado };
+            }
+        
+            // Verifica si se especifica una fecha
+            if (fecha) {
+                filtroFechaCliente = { fecha: { $eq: fecha } };
+            }
+        
+            const reservas = await Reserva.find({ establecimiento: establecimientoId, ...filtroEstado, ...filtroFechaCliente })
+                .sort({ actualizacion: -1 }) // Ordenar por el campo de actualizacion de manera descendente (de la más nueva a la más antigua)
+                .limit(limite)
+                .skip(skip)
+                .exec();
+        
             return reservas;
         },
+        
         encontrarCliente: async (_, {clienteId}, ctx) => {
             console.log('obtenerrrrrrrrrrrrrr', clienteId)
             const cliente =  await Cliente.findById(clienteId)
@@ -151,6 +140,10 @@ export const AdminResolvers = {
     Mutation:{
         crearAdmin: async (_, {input}, ctx) => {
                 const {telefono, password} = input;
+                // const existeCliente = await Cliente.findOne({telefono})
+                // if(existeCliente) {
+                //     throw new Error('Ese numero ya esta registrado como usuario');
+                // }
                 const existeAdmin = await Admin.findOne({telefono})
                 if(existeAdmin) {
                     throw new Error('El administrador ya esta registrado');
@@ -516,7 +509,7 @@ export const AdminResolvers = {
             return "reserva eliminada"
     },
 
-    actualizarReservaEstado: async (_,{id,  establecimiento, estado}, ctx) => {
+    actualizarReservaEstado: async (_,{id,  establecimiento, estado, actualizacion}, ctx) => {
         //si la tarea existe o no
 
         let reserva = await Reserva.findById(id);
@@ -531,7 +524,7 @@ export const AdminResolvers = {
             throw new Error('No tienes las credenciales');
         }
 
-        reserva = await Reserva.findOneAndUpdate({_id:id}, {estado}, {new:true}).populate('establecimiento')
+        reserva = await Reserva.findOneAndUpdate({_id:id},{estado, actualizacion}, {new:true}).populate('establecimiento')
         //  console.log('verificacion', reserva)
 
         if (estado === 'denegado' || estado === 'aceptado') {

@@ -41,148 +41,8 @@ export const  ClienteResolvers = {
             const establecimiento =  await Establecimiento.findById(establecimientoId)
             return establecimiento;
         },
-        obtenerEstablecimientosFilter: async (_, { nombre, ubicacion, metros, limit, offset }, ctx) => {
-            console.log('obtenerrr', nombre, ubicacion, metros, limit, offset);
-
-            const filter: any = {};
-
-            if (nombre) {
-                filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
-            }
-
-            let aggregationPipeline = [];
-
-            if (ubicacion) {
-                aggregationPipeline.push({
-                    $geoNear: {
-                        near: {
-                            type: 'Point',
-                            coordinates: [ubicacion.latitude, ubicacion.longitude],
-                        },
-                        distanceField: 'distancia',
-                        maxDistance: metros,
-                        spherical: true,
-                    },
-                });
-            }
-            aggregationPipeline = [
-                ...aggregationPipeline,
-                { $sort: {
-                    valoracion: -1,
-                    },},
-                { $skip: offset },
-                { $limit: limit },
-            ];
-
-            const establecimientos = await Establecimiento.aggregate([
-                { $match: filter },
-                ...aggregationPipeline,
-            ]);
-            console.log('probando sort')
-            establecimientos.forEach((estab) => {
-                console.log(estab.nombre, estab.distancia,'valoracion:', estab.valoracion);
-            });
-
-            return establecimientos;
-        },
+       
     
-
-          obtenerEstablecimientosDisponibles: async (_, { fecha, offset, limit, filtroNombre, ubicacion, metros }) => {
-            const skip = (offset - 1) * limit;
-            console.log( fecha,  offset, limit, ubicacion, metros )
-            const peruDate = toZonedTime(new Date(fecha), 'America/Lima')
-            console.log('fecha formateaada', peruDate)
-            console.log('la hora ingresada es: ' , (new Date(peruDate).getHours())*60)
-            const hora = (new Date(peruDate).getHours())
-     
-             const pipeline = [];
-
-            if (ubicacion) {
-                pipeline.push({
-                    $geoNear: {
-                        near: {
-                          type: "Point",
-                          coordinates: [ubicacion.latitude,ubicacion.longitude], // Proporciona las coordenadas del punto de referencia
-                        },
-                        distanceField: "distancia", // Agregará un campo "distancia" en los resultados
-                      spherical: true, // Habilita cálculos esféricos para la búsqueda geoespacial
-                        maxDistance: metros
-                      },
-                });
-            }
-
-            pipeline.push({
-                $lookup: {
-                    from: 'reservas',
-                    let: { establecimientoId: '$_id' },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $and: [
-                                        { $eq: ['$establecimiento', '$$establecimientoId'] },
-                                        { $eq: ['$fecha', new Date(fecha)] },
-                                        { $eq: ['$estado', 'noVisto'] }, // Agregar el filtro de estado 'aceptado'
-                                    ],
-                                },
-                            },
-                        },
-                    ],
-                    as: 'reservas',
-                },
-            });
-
-            pipeline.push({
-
-                    $match: {
-                        $expr: {
-                            $gt: [
-                                '$numeroCanchas', // Cambiar al nombre del campo que almacena el número de canchas
-                                {
-                                    $size:  '$reservas'
-                                },
-                            ],
-                        },
-                    },
-
-            })
-            ////////////////RESPETAR EL HORARIO DE SALIDA Y ENTRADA////////
-            pipeline.push({
-                $match: {
-                    $expr: {
-                        $cond: {
-                            if: { $gte: ['$horarioCierre', '$horarioApertura'] },
-                            then: {
-                                $and: [
-                                    { $lte: ['$horarioApertura', (hora)*60] },
-                                    { $gte: ['$horarioCierre', (hora+1)*60] }
-                                ]
-                            },
-                            else: {
-                                $or: [
-                                    { $lte: ['$horarioApertura', (hora)*60] },
-                                    { $gte: ['$horarioCierre', (hora+1)*60] }
-                                ]
-                            }
-                        }
-                    }
-                }
-            });
-            pipeline.push({$skip:offset})
-            pipeline.push({$limit: limit})
-
-            // Agregación para obtener establecimientos disponibles (no reservados)
-            const establecimiento = await Establecimiento.aggregate(pipeline);
-
-
-            establecimiento.map((estab) => {
-                console.log(estab.nombre);
-                estab.reservas.map((reserva) => {
-                    console.log('Reserva:', reserva); // Imprime los detalles de la reserva
-                });
-            });
-            return establecimiento;
-        },
 
         obtenerEstablecimientos: async (_, { nombre, ubicacion, metros, limit, offset, fecha }) => {
             console.log('Parametros de entrada:', nombre, ubicacion, metros, limit, offset, fecha);
@@ -303,7 +163,7 @@ export const  ClienteResolvers = {
         },
 
        
-        obtenerReservasPorEstab: async (_, { establecimientoId, fechaMin, fechaMax }, ctx) => {
+        obtenerReservasPorEstab: async (_, { establecimientoId, cancha, fechaMin, fechaMax }, ctx) => {
             console.log('mis reservas id', establecimientoId)
             const now = new Date();
             if (!fechaMin) {
@@ -313,26 +173,36 @@ export const  ClienteResolvers = {
             const reservas = await Reserva.find({
                 establecimiento: establecimientoId,
                 fecha: filtroFecha,
+                espacioAlquilado: cancha,
                 estado: { $ne: 'denegado' } // Filtra las reservas donde el estado no sea 'denegado'
             }).sort({ fecha: 1 }).exec();
             return reservas;
         },
 
-        obtenerReservasRealizadas: async (_, { clienteId }, ctx) => {
+        obtenerReservasRealizadas: async (_, { clienteId, fecha, limite, page }, ctx) => {
             try {
-                const now = new Date();
-                const filtroFecha = { $gte: now };
-                const reservas = await Reserva.find({ cliente: clienteId, fecha: filtroFecha })
-                                             .sort({ registro: -1 })
-                                             .populate('establecimiento')
-                                             .exec();
-                // console.log('reservas realizadas:' , reservas)
-                 return reservas;
+                const skip = (page - 1) * limite;
+                const query:any = { cliente: clienteId };
+        
+                // Añadir fecha a la consulta solo si no es null
+                if (fecha !== null) {
+                    query.fecha = fecha;
+                }
+        
+                const reservas = await Reserva.find(query)
+                                              .sort({ registro: -1 }) // Ordenar por campo 'registro' en orden descendente
+                                              .populate('establecimiento') // Poblar el campo 'establecimiento'
+                                              .limit(limite) // Limitar la cantidad de resultados
+                                              .skip(skip) // Omitir una cantidad de resultados según la paginación
+                                              .exec(); // Ejecutar la consulta
+        
+                return reservas;
             } catch (error) {
                 console.error('Error al obtener las reservas realizadas:', error);
                 throw error;
             }
         },
+        
 
         obtenerHistorialReservas: async (_, { clienteId, limite, page }, ctx) => {
             try {
@@ -364,6 +234,10 @@ export const  ClienteResolvers = {
                 if(existeCliente) {
                     throw new Error('Ese numero ya esta registrado');
                 }
+                // const existeAdmin = await Admin.findOne({telefono})
+                // if(existeAdmin) {
+                //     throw new Error('Ese numero ya esta registrado como administrador');
+                // }
                 try {
                     //Hashear Password
 
@@ -669,7 +543,6 @@ export const  ClienteResolvers = {
             throw new Error('reserva no encontrada');
         }
         // Si la persona que edita es o no
-
         if(reserva.cliente.toString() !== clienteId){
             throw new Error('No tienes las credenciales');
         }

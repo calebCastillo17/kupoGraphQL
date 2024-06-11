@@ -71,6 +71,7 @@ type RefreshToken {
 
 type AuthPayload {
     user: User
+    userType: String
     accessToken: AccessToken!
     refreshToken: RefreshToken!
 }
@@ -86,14 +87,12 @@ type Admin{
 }
 
 type  Query {        
-    obtenerMisEstablecimientos : [MiEstablecimiento] 
     obtenerMiEstablecimiento: MiEstablecimiento
     obtenerUsuarioAdmin : User
     obtenerMisCanchasPorEstablecimientoFuera(establecimientoId: ID!): [MiCancha] 
     obtenerMisReservas(establecimientoId: ID!, cancha: String,fechaMin:String, fechaMax: String): [Reserva]
     obtenerMisNuevasReservas(establecimientoId: ID!): [Reserva]
-    encontrarMiEstablecimientoPorId(id:ID!): [MiEstablecimiento]
-    obtenerMiHistorialReservas(establecimientoId: ID!, estado: String, limite: Int, page:Int): [Reserva]
+    obtenerMiHistorialReservas(establecimientoId: ID!, estado: String, limite: Int, page:Int, fecha: String): [Reserva]
 
     #cliente
     encontrarCliente(clienteId: ID!) : UserPublic
@@ -105,6 +104,7 @@ input AdminInput {
     email: String!
     password:String!
     telefono: String
+    nombreUsuario: String
     lugar: Lugar
     fecha_nacimiento: String
     notificaciones_token: String
@@ -205,7 +205,7 @@ type Mutation {
 
     # reserva
     eliminarMiReserva(id:ID!, establecimiento: ID!) : String
-    actualizarReservaEstado(id:ID!, establecimiento:String, estado: String): Reserva
+    actualizarReservaEstado(id:ID!, establecimiento:String, actualizacion:String, estado: String): Reserva
     nuevaAutoReserva( input: ReservaInput, userId:ID!): Reserva
 
 }

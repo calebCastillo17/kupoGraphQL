@@ -13,6 +13,13 @@ import { createWriteStream } from "fs";
 import cron from 'node-cron';
 
 
+const crearTokenUsuario = (cliente, secreta, expiresIn) => {
+    const {id, email, nombre} = cliente
+    return jwt.sign({id,email, nombre}, secreta, { expiresIn})
+}
+
+
+
 
 // Programa el envío de notificaciones cada hora
 cron.schedule('23 * * * *', async() => {
@@ -180,28 +187,63 @@ export const ImperiotResolvers = {
                 token: crearTokenImperiot(existeImperiot, process.env.PALABRATOKEN, '1hr')
             }
         },
-        // notificarUnaHoraNtesReserva: async (_, {input}, ctx) => {
-        //     const {email, password} = input;
+        
+        autenticarUsuario : async (_, { input, userType }, ctx) => {
+            const { password, telefono } = input;
+            console.log('tus credenciales son', telefono, password);
 
-        //     //revisar si el usuario existe
-        //     const existeImperiot = await Imperiot.findOne({email})
+            let user:any = {};
+            let userProfileType = null;
+            if(!userType){
+                const existeCliente = await Cliente.findOne({ telefono });
+                const existeAdmin = await Admin.findOne({ telefono });
+                if (existeCliente && existeAdmin ) {
+                    return {
+                        mensaje: 'El usuario tiene ambos perfiles. Por favor, elija con cuál perfil desea autenticarse.',
+                        opciones: ['CLIENTE', 'ADMIN'],
+                    };
+                }
+                if (existeCliente ){
+                    user = existeCliente
+                    userProfileType = 'CLIENTE';
+                } else if (existeAdmin ){
+                    user = existeAdmin
+                    userProfileType = 'ADMIN';
+                } else {
+                    throw new Error('El Usuario no está registrado');
+                }
+            } else {
+                console.log('el usuario envio un tipo de usuario', userType)
+                if (userType === 'CLIENTE' ){
+                    const existeCliente = await Cliente.findOne({ telefono });
+                    user = existeCliente
+                    userProfileType = 'CLIENTE';
+                } else if (userType === 'ADMIN' ){
+                    const existeAdmin = await Admin.findOne({ telefono });
+                    user = existeAdmin
+                    userProfileType = 'ADMIN';
+                }else {
+                    throw new Error('El Usuario no está registrado');
+                }
+            }
 
-        //     if(!existeImperiot) {
-        //         throw new Error('El Imperiot no esta registrado');
-        //     }
-            
-        //     //revisar si el password es correcto
-        //     const passwordCorrecto = await bcrypt.compare(password, existeImperiot.password)
+      
 
+            // Revisar si el password es correcto
+            const passwordCorrecto = await bcrypt.compare(password, user.password);
+            if (!passwordCorrecto) {
+                throw new Error('Password incorrecto');
+            }
 
-        //     if(!passwordCorrecto) {
-        //         throw new Error('password Incorrecto');
-        //     }
-
-        //     return {
-        //         token: crearTokenImperiot(existeImperiot, process.env.PALABRATOKEN, '1hr')
-        //     }
-        // },
+            console.log('Usuario autenticado:', user);
+            return {
+                user,
+                userType: userProfileType,
+                accessToken: { token: crearTokenUsuario(user, process.env.PALABRATOKEN, '2m') },
+                refreshToken: { token: crearTokenUsuario(user, process.env.PALABRATOKEN, '7d') },
+            };
+        },
+    
 
         singleUpload: async (_, args) => {
             // const { filename, mimetype, createReadStream } = await file;
