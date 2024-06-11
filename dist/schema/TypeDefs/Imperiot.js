@@ -38,7 +38,14 @@ export const ImperiotTypeDefs = `#graphql
         apellido: String
         nombreUsuario:String
     }
-
+    type AuthResponse {
+        user: User
+        userType: String
+        accessToken: AccessToken
+        refreshToken: RefreshToken
+        mensaje: String
+        opciones: [String]
+    }
     input ImperiotInput {
         nombre: String!
         apellido: String!
@@ -55,8 +62,7 @@ export const ImperiotTypeDefs = `#graphql
         # imperiots
         crearImperiot (input: ImperiotInput): String
         autenticarImperiot(input: AutenticarInput) : Token
+       
         singleUpload(file:String): String
     }
-    
- 
 `;

@@ -23,6 +23,7 @@ interface Cliente {
   interface Pelotero {
     edad: string; 
     posicion: string;  
+    apodo: string;  
     club: string;  
     numero_camiseta: string;
     tallas: Tallas
@@ -72,6 +73,7 @@ const ClientesSchema = new Schema<Cliente>({
         type: String,
         require: true,
         trim: true,
+        default:'Masculino',
     },
     email:{
         type: String,
@@ -100,6 +102,7 @@ const ClientesSchema = new Schema<Cliente>({
         edad: {type:String  },
         posicion: {type:String  },
         club: {type:String  },
+        apodo: {type:String  },
         numero_camiseta: {type:String},
         tallas: {
             camiseta:{type:String },

@@ -37,7 +37,8 @@ const ReservasSchema = new Schema({
     },
     actualizacion: {
         type: Date,
-        default: new Date()
+        default: new Date(),
+        index: true,
     },
     estado: {
         type: String,

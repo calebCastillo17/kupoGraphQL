@@ -180,28 +180,7 @@ export const ImperiotResolvers = {
                 token: crearTokenImperiot(existeImperiot, process.env.PALABRATOKEN, '1hr')
             }
         },
-        // notificarUnaHoraNtesReserva: async (_, {input}, ctx) => {
-        //     const {email, password} = input;
-
-        //     //revisar si el usuario existe
-        //     const existeImperiot = await Imperiot.findOne({email})
-
-        //     if(!existeImperiot) {
-        //         throw new Error('El Imperiot no esta registrado');
-        //     }
-            
-        //     //revisar si el password es correcto
-        //     const passwordCorrecto = await bcrypt.compare(password, existeImperiot.password)
-
-
-        //     if(!passwordCorrecto) {
-        //         throw new Error('password Incorrecto');
-        //     }
-
-        //     return {
-        //         token: crearTokenImperiot(existeImperiot, process.env.PALABRATOKEN, '1hr')
-        //     }
-        // },
+       
 
         singleUpload: async (_, args) => {
             // const { filename, mimetype, createReadStream } = await file;
