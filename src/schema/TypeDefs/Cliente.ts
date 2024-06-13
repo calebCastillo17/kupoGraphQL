@@ -34,6 +34,7 @@ type EstablecimientoLista {
     valoracion: Float
     premium: Boolean
     distancia:Float
+    telefono: String
 }
 type EstablecimientoAltoque {
     nombre: String
@@ -154,7 +155,7 @@ type PagoResultado {
 
 type  Query {
     obtenerEstablecimientos( nombre:String, ubicacion:UbicacionInput, metros: Int,limit:Int, offset: Int, fecha: String) : [EstablecimientoLista]
-    obtenerEstablecimientoPorId(establecimientoId: ID) : Establecimiento
+    obtenerEstablecimientoPorId(establecimientoId: ID) : EstablecimientoLista
     obtenerCanchasPorEstablecimiento(establecimientoId: ID): [Cancha]
     obtenerReservasPorEstab(establecimientoId: ID!,cancha:String, fechaMin:String, fechaMax: String): [Reserva]
     obtenerReservasRealizadas(clienteId: ID! , fecha:String , limite: Int, page:Int): [Reserva]

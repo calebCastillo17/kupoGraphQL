@@ -384,7 +384,7 @@ export const ClienteResolvers = {
                     cliente: userId,
                     fecha: { $gt: new Date() } // Fecha mayor que la actual
                 });
-                if (reservasActivas.length >= 7) {
+                if (reservasActivas.length >= 5) {
                     // Si el usuario ya tiene más de dos reservas activas, lanzar un error
                     throw new GraphQLError('Ya tienes demasiadas reservas activas.');
                 }

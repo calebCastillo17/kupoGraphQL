@@ -239,7 +239,7 @@ export const ImperiotResolvers = {
             return {
                 user,
                 userType: userProfileType,
-                accessToken: { token: crearTokenUsuario(user, process.env.PALABRATOKEN, '17h') },
+                accessToken: { token: crearTokenUsuario(user, process.env.PALABRATOKEN, '1m') },
                 refreshToken: { token: crearTokenUsuario(user, process.env.PALABRATOKEN, '7d') },
             };
         },
