@@ -54,7 +54,7 @@ const CanchaSchema = new Schema({
     },
     creador:{
         type: Schema.Types.ObjectId,
-        ref: 'Usuario',
+        ref: 'Admin',
         require: true,
     }
 });

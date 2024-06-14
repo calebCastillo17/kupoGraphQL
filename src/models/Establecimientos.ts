@@ -110,9 +110,9 @@ const EstablecimientosSchema = new Schema<IEstablecimiento>({
   },
   creadorTipo: {
     type: String,
-    default: 'Usuario',
+    default: 'Admin',
     required: true,
-    enum: ['Usuario', 'Imperiot'] // Enumera los tipos de usuarios permitidos
+    enum: ['Admin', 'Imperiot'] // Enumera los tipos de usuarios permitidos
   },
   creado: {
     type: Date,

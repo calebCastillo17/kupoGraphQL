@@ -4,21 +4,21 @@ export const ClienteTypeDefs = `#graphql
   # This "Book" type defines the queryable fields for every book in our data source.
   
       
-type Cancha{
+  type Cancha{
     nombre: String
     precio: Precio
     id: ID
     imagen:String
     nombreOpcional: String
     inhabilitado:[Int]
+    
 }
-
 type Precio{
     dia:Int
     noche: Int
 }
 
-type Establecimiento {
+type EstablecimientoLista {
     nombre: String
     id: ID
     direccion: String
@@ -36,7 +36,41 @@ type Establecimiento {
     distancia:Float
     telefono: String
 }
+type EstablecimientoAltoque {
+    nombre: String
+    id: ID
+    direccion: String
+    numeroCanchas: Int
+    servicios: [String]
+    imagen: String
+    disponible: Boolean
+    ubicacion:Ubicacion
+    horarioApertura: Int!
+    horarioCierre: Int!
+    reservas: Reserva
+    notificaciones_token: String
+    premium: Boolean
+}
 
+
+type Establecimiento { 
+    nombre: String
+    id: ID
+    direccion: String
+    telefono: String
+    numeroCanchas: Int
+    horarioApertura: Int!
+    horarioCierre: Int!
+    servicios: [String]
+    imagen: String
+    ubicacion: Ubicacion
+    disponible: Boolean
+    notificaciones_token: String
+    premium: Boolean
+}
+
+
+  
 type Reserva {
     fecha: String
     abono: Int
@@ -48,8 +82,71 @@ type Reserva {
     estado: String
     nombreUsuario: String
     establecimiento: Establecimiento
+
 }
 
+
+type AccessToken{
+    token: String
+}
+type RefreshToken {
+    token: String
+}
+type AuthPayload {
+    user: User
+    accessToken: AccessToken!
+    refreshToken: RefreshToken!
+}
+
+type User {
+    nombre: String
+    apellido: String 
+    foto: String
+    nombreUsuario:String
+    sexo: String
+    telefono: String
+    id:ID
+    notificaciones_token: String
+    lugar: Localidad
+    fecha_nacimiento: String
+    pelotero: Pelotero
+    email:String
+}
+
+
+type Pelotero {
+    edad: String  
+    posicion: String  
+    club: String  
+    numero_camiseta: String
+    tallas: Tallas
+    lesiones: [String] 
+    pierna_habil:String 
+    peso: String 
+    estatura:String 
+}
+
+type Tallas {
+    camiseta:String 
+    short: String 
+    calzado:String 
+}
+
+type Localidad {
+    pais: String
+    nivel_1: String
+    nivel_2: String
+    nivel_3: String
+}
+
+type UserPublic {
+    nombre: String
+    apellido: String
+    nombreUsuario:String
+    sexo: String
+    telefono: String
+    notificaciones_token: String
+}
 
 type PagoResultado {
     success: Boolean
@@ -57,15 +154,66 @@ type PagoResultado {
   }
 
 type  Query {
-    obtenerEstablecimientos( nombre:String, ubicacion:UbicacionInput, metros: Int,limit:Int, offset: Int, fecha: String) : [Establecimiento]
-    obtenerEstablecimientoPorId(establecimientoId: ID) : Establecimiento
+    obtenerEstablecimientos( nombre:String, ubicacion:UbicacionInput, metros: Int,limit:Int, offset: Int, fecha: String) : [EstablecimientoLista]
+    obtenerEstablecimientoPorId(establecimientoId: ID) : EstablecimientoLista
     obtenerCanchasPorEstablecimiento(establecimientoId: ID): [Cancha]
     obtenerReservasPorEstab(establecimientoId: ID!,cancha:String, fechaMin:String, fechaMax: String): [Reserva]
     obtenerReservasRealizadas(clienteId: ID! , fecha:String , limite: Int, page:Int): [Reserva]
     obtenerHistorialReservas(clienteId: ID!, limite: Int, page:Int): [Reserva]
 }
 
+input  ProyectoIDProyecto {
+    proyecto:String!
 
+}
+
+input ClienteInput {
+    nombre: String!
+    apellido: String!
+    nombreUsuario: String
+    email: String!
+    telefono: String
+    password:String!
+    lugar: Lugar
+    fecha_nacimiento: String
+}
+input Lugar {
+    pais: String
+    nivel_1: String
+    nivel_2: String
+    nivel_3: String
+}
+input PeloteroInput {
+    edad: String  
+    posicion: String  
+    club: String  
+    numero_camiseta: String
+    tallas: TallasInput
+    lesiones: [String] 
+    pierna_habil:String 
+    peso: String 
+    estatura:String 
+}
+input TallasInput {
+    camiseta:String 
+    short: String 
+    calzado:String 
+}
+input userCliente {
+    nombre: String
+    apellido:String
+    foto:String
+    nombreUsuario: String
+    sexo:String
+    telefono:String
+    lugar: Lugar
+    fecha_nacimiento: String
+}
+
+input  AutenticarClienteInput{
+    telefono: String!
+    password:String!
+}
 
 input PagoInput {
     
@@ -98,14 +246,29 @@ input UbicacionInput {
 }
 
 type Ubicacion {
+ 
     longitude: Float!
     latitude:  Float!
+  }
+type Verificacion {
+    code: Int
+    message: String
 }
-
-
 type Mutation {
 
-    # usuario   
+    # usuario
+    crearCliente (input: ClienteInput): String
+    autenticarCliente(input: AutenticarClienteInput) : AuthPayload!
+    verificarCliente(telefono: String, code:Int ) : String!
+    enviarCodeVerificacionCliente(telefono: String ) : String
+    refreshAccessTokenCliente(refreshToken: String!): AccessToken!
+    verificarAutenticacion : Boolean
+    restaurarPassword(input: AutenticarClienteInput): String
+    editarUsuarioCliente(input: userCliente): User
+    editarPeloteroCliente(input: PeloteroInput): User
+    editarFotoCliente(foto: String): User
+    actualizarTokenNotificacionesCliente(token: String): User
+    
 
     
     #Reserva

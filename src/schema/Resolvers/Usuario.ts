@@ -1,4 +1,5 @@
 import Establecimiento from "../../models/Establecimientos.js";
+import Cliente from "../../models/Clientes.js";
 import Cancha from "../../models/Canchas.js";
 import Usuario from "../../models/Usuarios.js";
 import Reserva from "../../models/Reservas.js";
@@ -13,23 +14,20 @@ import enviarNotificacion from "../../services/EnviarNotificacionExpo.js";
 const pubsub = new PubSub()
 
 
-
+const crearTokenUsuario = (Usuario, secreta, expiresIn) => {
+    const {id, email, nombre} = Usuario
+    return jwt.sign({id,email, nombre}, secreta, { expiresIn})
+}
 const horaActual = new Date()
 console.log(horaActual.getHours())
 console.log(Date.now())
-
-
-const crearTokenUsuario = (cliente, secreta, expiresIn) => {
-    const {id, email, nombre} = cliente
-    return jwt.sign({id,email, nombre}, secreta, { expiresIn})
-}
 
 
 export const UsuarioResolvers = {
 
     Query: {
 
-        obtenerUsuario: async (_, {}, ctx) => {
+        obtenerUsuarioUsuario: async (_, {}, ctx) => {
             console.log('pasapor aquiiiiii')
 
             if(!ctx.usuario){
@@ -46,24 +44,21 @@ export const UsuarioResolvers = {
         },
 
        
-        encontrarUsuario: async (_, {UsuarioId}, ctx) => {
-            console.log('obtenerrrrrrrrrrrrrr', UsuarioId)
-            const usuario =  await Usuario.findById(UsuarioId)
-            return usuario;
+        encontrarCliente: async (_, {clienteId}, ctx) => {
+            console.log('obtenerrrrrrrrrrrrrr', clienteId)
+            const cliente =  await Cliente.findById(clienteId)
+            return cliente;
         }
 
     },
     Mutation:{
         crearUsuario: async (_, {input}, ctx) => {
-
-                const {nombreUsuario, password, telefono} = input;
-                console.log('entrando input',nombreUsuario, password)
-
-                const existeTelefonoUsuario = await Usuario.findOne({telefono})
-                if(existeTelefonoUsuario) {
-                    throw new Error('Ese numero ya esta registrado en otra cuenta');
-                }
-                const existeUsuario = await Usuario.findOne({nombreUsuario})
+                const {telefono, password} = input;
+                // const existeCliente = await Cliente.findOne({telefono})
+                // if(existeCliente) {
+                //     throw new Error('Ese numero ya esta registrado como usuario');
+                // }
+                const existeUsuario = await Usuario.findOne({telefono})
                 if(existeUsuario) {
                     throw new Error('El Usuarioistrador ya esta registrado');
                 }
@@ -75,21 +70,11 @@ export const UsuarioResolvers = {
                     const NuevoUsuario = new Usuario(input);
                     console.log(NuevoUsuario)
                     NuevoUsuario.save()
-                    return "Usuario creado correctamente"
+                    return "Usuarioistrador creado correctamente"
                 } catch (error) {
                     console.log(error)
                 }
         },
-        verificarNombreUsuario:  async (_, {nombreUsuario}, ctx) => {
-            console.log(nombreUsuario)
-            const existeUsuario = await Usuario.findOne({nombreUsuario})
-            if(existeUsuario) {
-                throw new Error('Ese nombre de usuario ya esta registrado');
-            }
-            return 'Nombre de usuario validado correctamente'
-        },
-
-
         enviarCodeVerificacionUsuario: async (_, {telefono}, ctx) => {
             let verificacionCode = Math.floor(10000 + Math.random()*90000)
             console.log('telefono,hhh', telefono)
@@ -115,53 +100,7 @@ export const UsuarioResolvers = {
             }
            
         },
-        autenticarUsuario : async (_, { input, userType }, ctx) => {
-            const { password, nombreUsuario } = input;
-            console.log('tus credenciales son', nombreUsuario, password);
-            const existeUsuario = await Usuario.findOne({ nombreUsuario });
-            if(!existeUsuario) {
-                throw new Error('El usuario no esta registrado');
-            }
-            let user:any = {};
-            let userProfileType = null;
-            if(!userType){
-                console.log('tus credenciales son',existeUsuario.esAdmin, existeUsuario.esCliente);
-                if (existeUsuario.esAdmin && existeUsuario.esCliente ) {
-                    return {
-                        mensaje: 'El usuario tiene ambos perfiles. Por favor, elija con cuál perfil desea autenticarse.',
-                        opciones: ['CLIENTE', 'ADMIN'],
-                    };
-                }
-                user = existeUsuario
-                userProfileType = 'CLIENTE';
-            } else {
-                console.log('el usuario envio un tipo de usuario', userType)
-                if (userType === 'CLIENTE' ){
-                    const existeUsuario = await Usuario.findOne({ nombreUsuario });
-                    user = existeUsuario
-                    userProfileType = 'CLIENTE';
-                } else if (userType === 'ADMIN' ){
-                    const existeUsuario = await Usuario.findOne({ nombreUsuario });
-                    user = existeUsuario
-                    userProfileType = 'ADMIN';
-                }else {
-                    throw new Error('El Usuario no está registrado');
-                }
-            }
-            // Revisar si el password es correcto
-            const passwordCorrecto = await bcrypt.compare(password, user.password);
-            if (!passwordCorrecto) {
-                throw new Error('Password incorrecto');
-            }
 
-            console.log('Usuario autenticado:', user);
-            return {
-                user,
-                userType: userProfileType,
-                accessToken: { token: crearTokenUsuario(user, process.env.PALABRATOKEN, '17h') },
-                refreshToken: { token: crearTokenUsuario(user, process.env.PALABRATOKEN, '7d') },
-            };
-        },
         verificarUsuario: async (_, {code, telefono}, ctx) => {
             console.log('telefono, y codigo', telefono, code)
             const existeUsuario = await Usuario.findOne({telefono})
@@ -193,7 +132,33 @@ export const UsuarioResolvers = {
                     console.log(error)
                 }
         },
-    
+        autenticarUsuario: async (_, {input}, ctx) => {
+                const {telefono, password} = input;
+
+                //revisar si el usuario existe
+                const existeUsuario = await Usuario.findOne({telefono})
+                console.log('admiiiin', existeUsuario)
+                if(!existeUsuario) {
+                    throw new Error('El Usuarioistrador no esta registrado');
+                }
+                const {nombre, apellido, nombreUsuario, sexo, id, email} = existeUsuario
+
+                const user = existeUsuario
+                //revisar si el password es correcto
+                const passwordCorrecto = await bcrypt.compare(password, existeUsuario.password)
+
+
+                if(!passwordCorrecto) {
+                    throw new Error('password Incorrecto');
+                }
+
+                return {
+                    user:user,
+                    accessToken:{ token: crearTokenUsuario(existeUsuario, process.env.PALABRATOKEN, '17h')},
+                    refreshToken: {token: crearTokenUsuario(existeUsuario, process.env.PALABRATOKEN, '7d' )}
+                }
+        },
+
 
         refreshAccessTokenUsuario: (parent, { refreshToken }) => {
             // Verificar el token de actualización (refresh token)
@@ -221,7 +186,7 @@ export const UsuarioResolvers = {
 
 
         editarUsuario: async (_,{ input}, ctx) => {
-            console.log('ES LO QUE ESTA ENTRANDO', input)
+
             if(!ctx.usuario){
                 throw new GraphQLError('Usuario No autenticado', {
                     extensions: { code: 'UNAUTHENTICATED'},
@@ -236,26 +201,6 @@ export const UsuarioResolvers = {
             usuario = await Usuario.findOneAndUpdate({_id:ctx.usuario.id}, input, {new:true})
             return usuario
         },
-        editarPeloteroUsuario: async (_,{ input}, ctx) => {
-            if(!ctx.usuario){
-                throw new GraphQLError('Usuario No autenticado', {
-                    extensions: { code: 'UNAUTHENTICATED'},
-                });
-
-            }
-            console.log('pelotero', input)
-            let usuario = await Usuario.findById(ctx.usuario.id);
-
-            if (!usuario){
-                throw new Error('usuario no encontrado');
-            }
-            // Si la persona que edita es o no!!
-            usuario = await Usuario.findOneAndUpdate({_id:ctx.usuario.id}, {pelotero: input}, {new:true})
-            console.log('editarrrr Usuario', usuario)
-            
-            return usuario
-        },
-
         editarFotoUsuario: async (_,{foto}, ctx) => {
          
             console.log('foto', foto)
@@ -266,7 +211,7 @@ export const UsuarioResolvers = {
             }
             // Si la persona que edita es o no!!
             usuario = await Usuario.findOneAndUpdate({_id:ctx.usuario.id}, {foto}, {new:true})
-            console.log('editarrrr Usuario', usuario)
+            console.log('editarrrr cliente', usuario)
             
             return usuario.foto
         },
@@ -286,16 +231,16 @@ export const UsuarioResolvers = {
             }
             // Si la persona que edita es o no!!
             usuario = await Usuario.findOneAndUpdate({_id:ctx.usuario.id},{notificaciones_token:token}, {new:true})
-            return 'Token de notificacion actualizado correctamente'
+            return usuario
         },
        
         },
 
     Subscription: {
         cambioEstadoMiReservacion: {
-            subscribe: (_, {UsuarioId}) => { 
-              console.log('subsribiendo00 a', `RESERVAS_DE_${UsuarioId}`)
-              return pubsub.asyncIterator(`RESERVAS_DE_${UsuarioId}`)
+            subscribe: (_, {ClienteId}) => { 
+              console.log('subsribiendo00 a', `RESERVAS_DE_${ClienteId}`)
+              return pubsub.asyncIterator(`RESERVAS_DE_${ClienteId}`)
           }
           //    return context.pubsub.asyncIterator(`NUEVA_NOTIFICACION_${hotelId}`);
           }
