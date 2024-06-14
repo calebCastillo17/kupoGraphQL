@@ -1,6 +1,5 @@
 import Establecimiento from "../../models/Establecimientos.js";
-import Cliente from "../../models/Clientes.js";
-import Admin from "../../models/Admins.js";
+import Usuario from "../../models/Usuarios.js";
 import Cancha from "../../models/Canchas.js";
 import Reserva from "../../models/Reservas.js";
 import jwt from 'jsonwebtoken';
@@ -34,120 +33,121 @@ const crearTokenCliente = (cliente, secreta, expiresIn) => {
 
 export const  ClienteResolvers = {
     Query: {
-
-
         obtenerEstablecimientoPorId: async (_, {establecimientoId}, ctx) => {
             console.log('obtenerrrrrrrrrrrrrr', establecimientoId)
             const establecimiento =  await Establecimiento.findById(establecimientoId)
             return establecimiento;
         },
-       
-    
-
         obtenerEstablecimientos: async (_, { nombre, ubicacion, metros, limit, offset, fecha }) => {
             console.log('Parametros de entrada:', nombre, ubicacion, metros, limit, offset, fecha);
+            try {
+                
 
-            const filter:any = {};
-            const pipeline = [];
-
-            if (nombre) {
-                filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
-            }
-
-            if (ubicacion) {
-                pipeline.push({
-                    $geoNear: {
-                        near: {
-                            type: 'Point',
-                            coordinates: [ubicacion.latitude, ubicacion.longitude],
+                const filter:any = {};
+                const pipeline = [];
+    
+                if (nombre) {
+                    filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
+                }
+    
+                if (ubicacion) {
+                    pipeline.push({
+                        $geoNear: {
+                            near: {
+                                type: 'Point',
+                                coordinates: [ubicacion.latitude, ubicacion.longitude],
+                            },
+                            distanceField: 'distancia',
+                            maxDistance: metros,
+                            spherical: true,
                         },
-                        distanceField: 'distancia',
-                        maxDistance: metros,
-                        spherical: true,
-                    },
-                });
-            }
-
-            if (fecha) {
-                const peruDate = toZonedTime(new Date(fecha), 'America/Lima');
-                const hora = new Date(peruDate).getHours();
-
-                pipeline.push({
-                    $lookup: {
-                        from: 'reservas',
-                        let: { establecimientoId: '$_id' },
-                        pipeline: [
-                            {
-                                $match: {
-                                    $expr: {
+                    });
+                }
+    
+                if (fecha) {
+                    const peruDate = toZonedTime(new Date(fecha), 'America/Lima');
+                    const hora = new Date(peruDate).getHours();
+    
+                    pipeline.push({
+                        $lookup: {
+                            from: 'reservas',
+                            let: { establecimientoId: '$_id' },
+                            pipeline: [
+                                {
+                                    $match: {
+                                        $expr: {
+                                            $and: [
+                                                { $eq: ['$establecimiento', '$$establecimientoId'] },
+                                                { $eq: ['$fecha', new Date(fecha)] },
+                                                { $in: ['$estado', ['aceptado', 'solicitud']] },
+                                            ],
+                                        },
+                                    },
+                                },
+                            ],
+                            as: 'reservas',
+                        },
+                    });
+    
+                    pipeline.push({
+                        $match: {
+                            $expr: {
+                                $gt: [
+                                    '$numeroCanchas',
+                                    { $size: '$reservas' },
+                                ],
+                            },
+                        },
+                    });
+    
+                    pipeline.push({
+                        $match: {
+                            $expr: {
+                                $cond: {
+                                    if: { $gte: ['$horarioCierre', '$horarioApertura'] },
+                                    then: {
                                         $and: [
-                                            { $eq: ['$establecimiento', '$$establecimientoId'] },
-                                            { $eq: ['$fecha', new Date(fecha)] },
-                                            { $in: ['$estado', ['aceptado', 'solicitud']] },
+                                            { $lte: ['$horarioApertura', hora * 60] },
+                                            { $gte: ['$horarioCierre', (hora + 1) * 60] },
+                                        ],
+                                    },
+                                    else: {
+                                        $or: [
+                                            { $lte: ['$horarioApertura', hora * 60] },
+                                            { $gte: ['$horarioCierre', (hora + 1) * 60] },
                                         ],
                                     },
                                 },
                             },
-                        ],
-                        as: 'reservas',
-                    },
-                });
-
-                pipeline.push({
-                    $match: {
-                        $expr: {
-                            $gt: [
-                                '$numeroCanchas',
-                                { $size: '$reservas' },
-                            ],
                         },
-                    },
-                });
-
-                pipeline.push({
-                    $match: {
-                        $expr: {
-                            $cond: {
-                                if: { $gte: ['$horarioCierre', '$horarioApertura'] },
-                                then: {
-                                    $and: [
-                                        { $lte: ['$horarioApertura', hora * 60] },
-                                        { $gte: ['$horarioCierre', (hora + 1) * 60] },
-                                    ],
-                                },
-                                else: {
-                                    $or: [
-                                        { $lte: ['$horarioApertura', hora * 60] },
-                                        { $gte: ['$horarioCierre', (hora + 1) * 60] },
-                                    ],
-                                },
-                            },
-                        },
-                    },
-                });
-            }
-
-            pipeline.push({ $match: filter });
-
-            if (!ubicacion) {
-                pipeline.push({ $sort: { nombre: 1 } }); // Ordenar alfabéticamente por nombre
-            }
-
-            pipeline.push({ $skip: offset });
-            pipeline.push({ $limit: limit });
-
-            const establecimientos = await Establecimiento.aggregate(pipeline);
-
-            establecimientos.forEach((estab) => {
-                console.log(estab.nombre, estab.distancia, 'valoracion:', estab.reservas);
-                if (estab.reservas) {
-                    estab.reservas.forEach((reserva) => {
-                        console.log('Reserva:', reserva);
                     });
                 }
-            });
-
-            return establecimientos;
+    
+                pipeline.push({ $match: filter });
+    
+                if (!ubicacion) {
+                    pipeline.push({ $sort: { nombre: 1 } }); // Ordenar alfabéticamente por nombre
+                }
+    
+                pipeline.push({ $skip: offset });
+                pipeline.push({ $limit: limit });
+    
+                const establecimientos = await Establecimiento.aggregate(pipeline);
+    
+                establecimientos.forEach((estab) => {
+                    console.log(estab.nombre, estab.distancia, 'valoracion:', estab.reservas);
+                    if (estab.reservas) {
+                        estab.reservas.forEach((reserva) => {
+                            console.log('Reserva:', reserva);
+                        });
+                    }
+                });
+    
+                return establecimientos;
+            } catch (error) {
+                console.log('este error a enviar', error)
+            }
+           
         },
 
 
@@ -227,219 +227,6 @@ export const  ClienteResolvers = {
 
     },
     Mutation:{
-        crearCliente: async (_, {input}, ctx) => {
-            console.log(input)
-                const {email, password, telefono} = input;
-                const existeCliente = await Cliente.findOne({telefono})
-                if(existeCliente) {
-                    throw new Error('Ese numero ya esta registrado');
-                }
-                // const existeAdmin = await Admin.findOne({telefono})
-                // if(existeAdmin) {
-                //     throw new Error('Ese numero ya esta registrado como administrador');
-                // }
-                try {
-                    //Hashear Password
-
-                    const salt = await bcrypt.genSalt(10);
-                    input.password = await bcrypt.hash(password, salt)
-                    // registrar nuevo ususario
-                    const NuevoCliente = new Cliente(input);
-                    console.log(NuevoCliente)
-                    NuevoCliente.save()
-                    return "cliente creado correctamente"
-                } catch (error) {
-                    console.log(error)
-                }
-        },
-        autenticarCliente: async (_, {input}, ctx) => {
-                const { password, telefono} = input;
-                console.log('tus credenciales son', telefono, password)
-                //revisar si el usuario existe
-                const existeCliente = await Cliente.findOne({telefono})
-
-                if(!existeCliente) {
-                    throw new Error('El cliente no esta registrado');
-                }
-
-                const user = existeCliente
-                //revisar si el password es correcto
-                const passwordCorrecto = await bcrypt.compare(password, existeCliente.password)
-
-
-                if(!passwordCorrecto) {
-                    throw new Error('password Incorrecto');
-                }
-                console.log('clienteee ' , user)
-                return {
-                user,
-                accessToken:{ token: crearTokenCliente(existeCliente, process.env.PALABRATOKEN, '17h')},
-                refreshToken: {token: crearTokenCliente(existeCliente, process.env.PALABRATOKEN, '7d' )}
-
-                }
-        },
-        enviarCodeVerificacionCliente: async (_, {telefono}, ctx) => {
-            let verificacionCode = Math.floor(10000 + Math.random()*90000)
-            console.log('telefono,hhh', telefono)
-            const existeClient = await Cliente.findOne({telefono})
-            if(!existeClient) {
-                throw new Error('El Usuario no está registrado');
-            }
-            try {
-                const mensaje = await SmsTwilioSend(telefono, `${verificacionCode} es tu codigo de verificacion` )
-                console.log('mensaje pe', mensaje.status)
-                if(mensaje.status === "queued"){
-                    const usuario = await Cliente.findOneAndUpdate({telefono}, {code_verificacion: verificacionCode}, {new:true})
-                    if (usuario.code_verificacion === verificacionCode){
-                        return 'codigo enviado'
-                    }
-                console.log('usuario ps',usuario)
-
-                }
-            } catch (error) {
-                console.log('mensaje serio error', error)
-                throw new Error(error);
-
-            }
-           
-        },
-    
-        verificarCliente: async (_, {code, telefono}, ctx) => {
-            console.log('telefono, y codigo', telefono, code)
-            const existeAdmin = await Cliente.findOne({telefono})
-            if(!existeAdmin) {
-                throw new Error('El Usuario no está registrado');
-            }
-
-            if(existeAdmin.code_verificacion === code){
-                await Cliente.findOneAndUpdate({telefono}, {estado: 'verificado'}, {new:true})
-                return 'correcto'
-            }else {
-                return 'incorrecto'
-            }
-          
-        },
-
-        refreshAccessTokenCliente: (parent, { refreshToken }) => {
-            // Verificar el token de actualización (refresh token)
-            try {
-              const usuario = jwt.verify(refreshToken, process.env.PALABRATOKEN);
-                console.log(usuario)
-              // Generar un nuevo token de acceso
-              const accessToken = crearTokenCliente(usuario, process.env.PALABRATOKEN,'17h');
-
-              return { token: accessToken};
-            } catch (error) {
-              throw new Error('Token de actualización inválido');
-            }
-          },
-
-
-        verificarAutenticacion: (_,{input}, ctx) => {
-
-            if(!ctx.usuario){
-                throw new GraphQLError('Usuario No autenticado', {
-                    extensions: { code: 'UNAUTHENTICATED'},
-                });
-            }
-                return true
-        },
-         restaurarPassword: async (_,{input}, ctx) => {
-
-                const {email, password, telefono} = input;
-                console.log(password, telefono)
-
-
-                const existeClient = await Cliente.findOne({telefono})
-                if(!existeClient) {
-                    throw new Error('El Usuario no está registrado');
-                }
-                try {
-                    //Hashear Password
-                    const salt = await bcrypt.genSalt(10);
-                    const passwordNew= await bcrypt.hash(password, salt)
-                     await Cliente.findOneAndUpdate({telefono}, {password: passwordNew}, {new:true})
-            
-                     return "Contraseña restablecida correctamente"
-                } catch (error) {
-                    console.log(error)
-                }
-        },
-
-
-        editarUsuarioCliente: async (_,{ input}, ctx) => {
-                if(!ctx.usuario){
-                    throw new GraphQLError('Usuario No autenticado', {
-                        extensions: { code: 'UNAUTHENTICATED'},
-                    });
-
-                }
-                let usuario = await Cliente.findById(ctx.usuario.id);
-
-                if (!usuario){
-                    throw new Error('usuario no encontrado');
-                }
-                // Si la persona que edita es o no!!
-                usuario = await Cliente.findOneAndUpdate({_id:ctx.usuario.id}, input, {new:true})
-                console.log('editarrrr cliente', usuario)
-                
-                return usuario
-        },
-        editarPeloteroCliente: async (_,{ input}, ctx) => {
-            if(!ctx.usuario){
-                throw new GraphQLError('Usuario No autenticado', {
-                    extensions: { code: 'UNAUTHENTICATED'},
-                });
-
-            }
-            console.log('pelotero', input)
-            let usuario = await Cliente.findById(ctx.usuario.id);
-
-            if (!usuario){
-                throw new Error('usuario no encontrado');
-            }
-            // Si la persona que edita es o no!!
-            usuario = await Cliente.findOneAndUpdate({_id:ctx.usuario.id}, {pelotero: input}, {new:true})
-            console.log('editarrrr cliente', usuario)
-            
-            return usuario
-        },
-
-        editarFotoCliente: async (_,{foto}, ctx) => {
-         
-            console.log('foto', foto)
-            let usuario = await Cliente.findById(ctx.usuario.id);
-
-            if (!usuario){
-                throw new Error('usuario no encontrado');
-            }
-            // Si la persona que edita es o no!!
-            usuario = await Cliente.findOneAndUpdate({_id:ctx.usuario.id}, {foto}, {new:true})
-            console.log('editarrrr cliente', usuario)
-            
-            return usuario
-        },
-
-
-        actualizarTokenNotificacionesCliente: async (_,{token}, ctx) => {
-
-                if(!ctx.usuario){
-                    throw new GraphQLError('Cliente No autenticado', {
-                        extensions: { code: 'UNAUTHENTICATED'},
-                    });
-                } 
-                let usuario = await Cliente.findById(ctx.usuario.id);
-
-
-                if (!usuario){
-                    throw new Error('usuario cliente no encontrado');
-                }
-
-
-                // Si la persona que edita es o no!!
-                usuario = await Cliente.findOneAndUpdate({_id:ctx.usuario.id},{notificaciones_token:token}, {new:true})
-                return usuario
-        },
 
 
 
@@ -472,7 +259,6 @@ export const  ClienteResolvers = {
                 // Crear la nueva reserva
                 const nuevaReserva = new Reserva(input);
                 nuevaReserva.cliente = userId;
-                const resultado = await nuevaReserva.save();
                 // Buscar el establecimiento asociado a la reserva
                 const establecimiento = await Establecimiento.findById(input.establecimiento);
 
@@ -481,11 +267,13 @@ export const  ClienteResolvers = {
                 }
 
                 // Buscar el administrador asociado al establecimiento
-                const administrador = await Admin.findOne({ _id: establecimiento.creador });
+                const administrador = await Usuario.findOne({ _id: establecimiento.creador });
 
                 if (!administrador) {
                     throw new GraphQLError('Administrador del establecimiento no encontrado.');
                 }
+                const resultado = await nuevaReserva.save();
+
                 const pushToken = administrador.notificaciones_token;
                  // Convertir resultado en un objeto que incluye id en lugar de _id
                
@@ -612,7 +400,7 @@ export const  ClienteResolvers = {
         //   return establecimiento;
         // },
     },
-    EstablecimientoLista: {
+    Establecimiento: {
         id: (establecimiento) => establecimiento._id.toString(),
     },
 

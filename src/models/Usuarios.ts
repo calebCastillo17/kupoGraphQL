@@ -74,7 +74,7 @@ const UsuarioSchema = new Schema<Usuario>({
   },
   sexo: {
     type: String,
-    required: true,
+    required: false,
     trim: true,
   },
   email: {
@@ -125,25 +125,27 @@ const UsuarioSchema = new Schema<Usuario>({
   esCliente: {
     type: Boolean,
     required: true,
+    default:true
   },
   esAdmin: {
     type: Boolean,
     required: true,
+    default:false
   },
   pelotero: {
-    edad: { type: String, required: true },
-    posicion: { type: String, required: true },
-    club: { type: String, required: true },
-    numero_camiseta: { type: String, required: true },
+    edad: { type: String, required: false },
+    posicion: { type: String, required: false },
+    club: { type: String, required: false },
+    numero_camiseta: { type: String, required: false },
     tallas: {
-      camiseta: { type: String, required: true },
-      short: { type: String, required: true },
-      calzado: { type: String, required: true },
+      camiseta: { type: String, required: false },
+      short: { type: String, required: false },
+      calzado: { type: String, required: false },
     },
-    lesiones: { type: [String], required: true },
-    pierna_habil: { type: String, required: true },
-    peso: { type: String, required: true },
-    estatura: { type: String, required: true },
+    lesiones: { type: [String], required: false },
+    pierna_habil: { type: String, required: false },
+    peso: { type: String, required: false },
+    estatura: { type: String, required: false },
   },
 });
 

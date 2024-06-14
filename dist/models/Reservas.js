@@ -10,7 +10,7 @@ const ReservasSchema = new Schema({
     },
     cliente: {
         type: Schema.Types.ObjectId,
-        ref: 'Cliente',
+        ref: 'Usuario',
         require: true,
     },
     espacioAlquilado: {
