@@ -51,6 +51,7 @@ const ClientesSchema = new Schema({
         edad: { type: String },
         posicion: { type: String },
         club: { type: String },
+        apodo: { type: String },
         numero_camiseta: { type: String },
         tallas: {
             camiseta: { type: String },
