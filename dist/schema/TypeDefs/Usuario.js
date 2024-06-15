@@ -99,6 +99,7 @@ export const UsuarioTypeDefs = `#graphql
         pierna_habil:String 
         peso: String 
         estatura:String 
+        apodo:String
     }
     input TallasInput {
         camiseta:String 

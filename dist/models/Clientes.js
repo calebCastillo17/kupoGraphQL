@@ -24,6 +24,7 @@ const ClientesSchema = new Schema({
         type: String,
         require: true,
         trim: true,
+        default: 'Masculino',
     },
     email: {
         type: String,

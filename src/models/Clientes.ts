@@ -73,6 +73,7 @@ const ClientesSchema = new Schema<Cliente>({
         type: String,
         require: true,
         trim: true,
+        default:'Masculino',
     },
     email:{
         type: String,
