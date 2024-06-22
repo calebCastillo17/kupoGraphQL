@@ -26,6 +26,22 @@ const horaActual = new Date()
 console.log(horaActual.getHours())
 console.log(Date.now())
 
+const verificarNombreUsuario = async (nombreUsuario) => {
+    const regex = new RegExp(`^${nombreUsuario}$`, 'i'); // Crear una expresión regular insensible a mayúsculas/minúsculas
+    const existeCliente = await Cliente.findOne({ nombreUsuario: regex });
+    const existeAdmin = await Admin.findOne({ nombreUsuario: regex });
+
+    if (existeCliente && existeAdmin) {
+        return 'AMBOS';
+    }
+    if (existeCliente) {
+        return 'CLIENTE';
+    } else if (existeAdmin) {
+        return 'ADMIN';
+    } else {
+        return 'NINGUNO';
+    }
+};
 
 export const UsuarioResolvers = {
 
@@ -222,22 +238,30 @@ export const UsuarioResolvers = {
 
        
 
-        editarUsuario: async (_,{ input}, ctx) => {
-
-            if(!ctx.usuario){
+        editarUsuario: async (_,{ input }, ctx) => {
+            if (!ctx.usuario) {
                 throw new GraphQLError('Admin No autenticado', {
-                    extensions: { code: 'UNAUTHENTICATED'},
+                    extensions: { code: 'UNAUTHENTICATED' },
                 });
             }
             let usuario = await Admin.findById(ctx.usuario.id);
 
-            if (!usuario){
+            const { nombreUsuario } = input;
+            if (nombreUsuario) {
+                const resultado = await verificarNombreUsuario(nombreUsuario);
+                if (resultado !== 'NINGUNO') {
+                    throw new Error(`El nombre de usuario ${nombreUsuario} ya está en uso como ${resultado}`);
+                }
+            }
+
+            if (!usuario) {
                 throw new Error('usuario no encontrado');
             }
-            // Si la persona que edita es o no!!
-            usuario = await Admin.findOneAndUpdate({_id:ctx.usuario.id}, input, {new:true})
-            return usuario
+
+            usuario = await Admin.findOneAndUpdate({ _id: ctx.usuario.id }, input, { new: true });
+            return usuario;
         },
+
         editarFotoAdmin: async (_,{foto}, ctx) => {
          
             console.log('foto', foto)
@@ -377,23 +401,28 @@ export const UsuarioResolvers = {
         },
 
 
-        editarUsuarioCliente: async (_,{ input}, ctx) => {
-                if(!ctx.usuario){
-                    throw new GraphQLError('Usuario No autenticado', {
-                        extensions: { code: 'UNAUTHENTICATED'},
-                    });
+         editarUsuarioCliente: async (_,{ input }, ctx) => {
+            if (!ctx.usuario) {
+                throw new GraphQLError('Usuario No autenticado', {
+                    extensions: { code: 'UNAUTHENTICATED' },
+                });
+            }
 
+            const { nombreUsuario } = input;
+            if (nombreUsuario) {
+                const resultado = await verificarNombreUsuario(nombreUsuario);
+                if (resultado !== 'NINGUNO') {
+                    throw new Error(`El nombre de usuario ${nombreUsuario} ya está en uso como ${resultado}`);
                 }
-                let usuario = await Cliente.findById(ctx.usuario.id);
+            }
 
-                if (!usuario){
-                    throw new Error('usuario no encontrado');
-                }
-                // Si la persona que edita es o no!!
-                usuario = await Cliente.findOneAndUpdate({_id:ctx.usuario.id}, input, {new:true})
-                console.log('editarrrr cliente', usuario)
-                
-                return usuario
+            let usuario = await Cliente.findById(ctx.usuario.id);
+            if (!usuario) {
+                throw new Error('usuario no encontrado');
+            }
+
+            usuario = await Cliente.findOneAndUpdate({ _id: ctx.usuario.id }, input, { new: true });
+            return usuario;
         },
         editarPeloteroCliente: async (_,{ input}, ctx) => {
             if(!ctx.usuario){

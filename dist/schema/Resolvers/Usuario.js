@@ -21,6 +21,23 @@ const crearTokenAdmin = (admin, secreta, expiresIn) => {
 const horaActual = new Date();
 console.log(horaActual.getHours());
 console.log(Date.now());
+const verificarNombreUsuario = async (nombreUsuario) => {
+    const regex = new RegExp(`^${nombreUsuario}$`, 'i'); // Crear una expresión regular insensible a mayúsculas/minúsculas
+    const existeCliente = await Cliente.findOne({ nombreUsuario: regex });
+    const existeAdmin = await Admin.findOne({ nombreUsuario: regex });
+    if (existeCliente && existeAdmin) {
+        return 'AMBOS';
+    }
+    if (existeCliente) {
+        return 'CLIENTE';
+    }
+    else if (existeAdmin) {
+        return 'ADMIN';
+    }
+    else {
+        return 'NINGUNO';
+    }
+};
 export const UsuarioResolvers = {
     Query: {
         /////////////////////////ADMIIIIIN/////////////////////////
@@ -95,7 +112,7 @@ export const UsuarioResolvers = {
                 return {
                     user,
                     userType: userProfileType,
-                    accessToken: { token: crearTokenUsuario(user, process.env.PALABRATOKEN, '17h') },
+                    accessToken: { token: crearTokenUsuario(user, process.env.PALABRATOKEN, '1m') },
                     refreshToken: { token: crearTokenUsuario(user, process.env.PALABRATOKEN, '7d') },
                 };
             }
@@ -211,10 +228,16 @@ export const UsuarioResolvers = {
                 });
             }
             let usuario = await Admin.findById(ctx.usuario.id);
+            const { nombreUsuario } = input;
+            if (nombreUsuario) {
+                const resultado = await verificarNombreUsuario(nombreUsuario);
+                if (resultado !== 'NINGUNO') {
+                    throw new Error(`El nombre de usuario ${nombreUsuario} ya está en uso como ${resultado}`);
+                }
+            }
             if (!usuario) {
                 throw new Error('usuario no encontrado');
             }
-            // Si la persona que edita es o no!!
             usuario = await Admin.findOneAndUpdate({ _id: ctx.usuario.id }, input, { new: true });
             return usuario;
         },
@@ -344,13 +367,18 @@ export const UsuarioResolvers = {
                     extensions: { code: 'UNAUTHENTICATED' },
                 });
             }
+            const { nombreUsuario } = input;
+            if (nombreUsuario) {
+                const resultado = await verificarNombreUsuario(nombreUsuario);
+                if (resultado !== 'NINGUNO') {
+                    throw new Error(`El nombre de usuario ${nombreUsuario} ya está en uso como ${resultado}`);
+                }
+            }
             let usuario = await Cliente.findById(ctx.usuario.id);
             if (!usuario) {
                 throw new Error('usuario no encontrado');
             }
-            // Si la persona que edita es o no!!
             usuario = await Cliente.findOneAndUpdate({ _id: ctx.usuario.id }, input, { new: true });
-            console.log('editarrrr cliente', usuario);
             return usuario;
         },
         editarPeloteroCliente: async (_, { input }, ctx) => {
