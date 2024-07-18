@@ -7,7 +7,7 @@ type  MiEstablecimiento{
     nombre: String
     id: ID
     direccion: String
-    telefono: String
+    telefonos: [String]
     numeroCanchas: Int
     horarioApertura: Int!
     horarioCierre: Int!
@@ -69,7 +69,7 @@ type  Query {
 input EstablecimientoInput {
     nombre: String!
     direccion: String!
-    telefono: String
+    telefonos: [String]
     horarioApertura: Int!
     horarioCierre: Int!
     imagen: String

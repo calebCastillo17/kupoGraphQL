@@ -34,7 +34,7 @@ type Establecimiento {
     valoracion: Float
     premium: Boolean
     distancia:Float
-    telefono: String
+    telefonos: [String]
 }
   
 type Reserva {

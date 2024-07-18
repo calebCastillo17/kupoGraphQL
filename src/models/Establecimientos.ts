@@ -3,7 +3,7 @@ import { Schema, model, Document, Decimal128 } from 'mongoose';
 interface IEstablecimiento extends Document {
   nombre: string;
   direccion: string;
-  telefono: string;
+  telefonos: string[];
   numeroCanchas?: number;
   horarioApertura: number;
   horarioCierre: number;
@@ -38,8 +38,8 @@ const EstablecimientosSchema = new Schema<IEstablecimiento>({
     required: true,
     trim: true,
   },
-  telefono: {
-    type: String,
+  telefonos: {
+    type: [String],
     required: true,
     trim: false,
   },

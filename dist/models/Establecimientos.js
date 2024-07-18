@@ -10,8 +10,8 @@ const EstablecimientosSchema = new Schema({
         required: true,
         trim: true,
     },
-    telefono: {
-        type: String,
+    telefonos: {
+        type: [String],
         required: true,
         trim: false,
     },
