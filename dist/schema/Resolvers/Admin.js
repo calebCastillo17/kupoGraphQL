@@ -42,14 +42,37 @@ export const AdminResolvers = {
                 fechaMin = now;
             }
             const filtroFecha = fechaMax ? { $gte: fechaMin, $lte: fechaMax } : { $gte: fechaMin };
-            const reservas = await Reserva.find({
+            // Construir el filtro dinámicamente
+            const filtro = {
                 establecimiento: establecimientoId,
                 fecha: filtroFecha,
-                espacioAlquilado: cancha,
                 estado: { $ne: 'denegado' } // Filtra las reservas donde el estado no sea 'denegado'
-            }).sort({ fecha: 1 }).exec();
-            // const reservas =  await Reserva.find({establecimiento:establecimientoId, fecha: { $gte: now }}).sort({ fecha: 1 }).exec();
+            };
+            if (cancha) {
+                filtro.espacioAlquilado = cancha;
+            }
+            const reservas = await Reserva.find(filtro).sort({ fecha: 1 }).exec();
             console.log('estas son mis reservas ', reservas);
+            return reservas;
+        },
+        obtenerRegistroReservas: async (_, { establecimientoId, cancha, fechaMin, fechaMax, estados }, ctx) => {
+            console.log('mis reservas fechas', fechaMin, fechaMax);
+            const now = new Date();
+            if (!fechaMin) {
+                fechaMin = now;
+            }
+            const filtroFecha = fechaMax ? { $gte: fechaMin, $lte: fechaMax } : { $gte: fechaMin };
+            // Construir el filtro dinámicamente
+            const filtro = {
+                establecimiento: establecimientoId,
+                fecha: filtroFecha,
+                estado: estados[0] // Filtra las reservas donde el estado no sea 'denegado'
+            };
+            if (cancha) {
+                filtro.espacioAlquilado = cancha;
+            }
+            const reservas = await Reserva.find(filtro).sort({ fecha: 1 }).exec();
+            console.log('estas son mis reservas registros', reservas);
             return reservas;
         },
         obtenerMisNuevasReservas: async (_, { establecimientoId }, ctx) => {

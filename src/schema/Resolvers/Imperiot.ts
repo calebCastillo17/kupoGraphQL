@@ -15,12 +15,12 @@ import cron from 'node-cron';
 
 
 // Programa el envío de notificaciones cada hora
-cron.schedule('23 * * * *', async() => {
+cron.schedule('29 * * * *', async() => {
   // Lógica para enviar las notificaciones push aquí
   const obtenerMisReservasNot = async () => {
     const now = new Date();
     const oneHourLater = new Date(now);
-    oneHourLater.setHours(now.getHours() + 2);
+    oneHourLater.setHours(now.getHours() + 1);
   
    
     const reservas:any = await Reserva.find({
@@ -38,8 +38,13 @@ cron.schedule('23 * * * *', async() => {
 
     console.log('Notificaciones enviadas cada hora');
 //   const somePushTokens = ['ExponentPushToken[S9WqnpOG-B2t0oobHwB4ag]']
+    const message = {
+        title: 'Recordatorio',
+        body: 'No olvides que tienes partido en una hora',
+        data: { withSome: 'data' },
+    }
     console.log(new Date())
-    NotificacionesPush(somePushTokens)
+    NotificacionesPush(somePushTokens, message)
 });
 
 

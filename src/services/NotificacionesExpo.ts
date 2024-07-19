@@ -4,7 +4,7 @@ import { Expo } from 'expo-server-sdk';
 // optionally providing an access token if you have enabled push security
 let expo = new Expo();
 
-async function NotificacionesPush(somePushTokens) {
+async function NotificacionesPush(somePushTokens, message) {
 
     let messages = [];
     for (let pushToken of somePushTokens) {
@@ -20,9 +20,9 @@ async function NotificacionesPush(somePushTokens) {
       messages.push({
         to: pushToken,
         sound: 'default',
-        title: 'Recordatorio',
-        body: 'No olvides que tienes partido en una hora',
-        data: { withSome: 'holliii' },
+        title: message.title,
+        body: message.body,
+        data: message.data
       })
     }
     
