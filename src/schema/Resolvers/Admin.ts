@@ -14,10 +14,6 @@ import enviarNotificacion from "../../services/EnviarNotificacionExpo.js";
 const pubsub = new PubSub()
 
 
-const crearTokenAdmin = (admin, secreta, expiresIn) => {
-    const {id, email, nombre} = admin
-    return jwt.sign({id,email, nombre}, secreta, { expiresIn})
-}
 const horaActual = new Date()
 console.log(horaActual.getHours())
 console.log(Date.now())
@@ -27,34 +23,6 @@ export const AdminResolvers = {
 
     Query: {
 
-        obtenerUsuarioAdmin: async (_, {}, ctx) => {
-            console.log('pasapor aquiiiiii')
-
-            if(!ctx.usuario){
-                throw new GraphQLError('no Autenticado', {
-                    extensions: { code: 'UNAUTHENTICATED'},
-                });
-            }
-
-
-            const usuario =  await Admin.findById(ctx.usuario.id)
-            console.log(usuario)
-
-            return usuario;
-        },
-
-        obtenerMisEstablecimientos: async (_, {}, ctx) => {
-
-            if(!ctx.usuario){
-                throw new GraphQLError('no Autenticado', {
-                    extensions: { code: 'UNAUTHENTICATED'},
-                });
-            }
-
-
-            const establecimiento =  await Establecimiento.find({creador: ctx.usuario.id})
-            return establecimiento;
-        },
         obtenerMiEstablecimiento: async (_,{}, ctx) => {
             console.log('esta obteniendo establecimiento')
             if(!ctx.usuario){
@@ -145,216 +113,34 @@ export const AdminResolvers = {
             return reservas;
         },
 
-        encontrarMiEstablecimientoPorId: async (_, {id}, ctx) => {
 
-            if(!ctx.usuario){
-                throw new GraphQLError('no Autenticado 2', {
-                    extensions: { code: 'UNAUTHENTICATED'},
-                });
-            }
-            console.log('encontrando mi estableccimientooooo',id)
-
-                const establecimiento =  await Establecimiento.find({creador: ctx.usuario.id}).where('_id').equals(id)
-                return establecimiento;
-        },
-
-        obtenerMiHistorialReservas: async (_, {establecimientoId, estado, limite, page}, ctx) => {
-            console.log('mis reservas id', establecimientoId)
-            const now = new Date();
+        obtenerMiHistorialReservas: async (_, { establecimientoId, estado, fecha, limite, page }, ctx) => {
+            console.log('mis reservas id', establecimientoId);
             const skip = (page - 1) * limite;
-            const filtroFecha =  { $lt: now };
-            const reservas =  await Reserva.find({establecimiento: establecimientoId, estado: estado,fecha: filtroFecha})
-            .sort({ registro: -1 })
-            .limit(limite)
-            .skip(skip)
-            .exec();
+            let filtroEstado = {};
+            let filtroFechaCliente = {};
+        
+            // Verifica si se especifica un estado
+            if (estado !== null) {
+                filtroEstado = { estado };
+            }
+        
+            // Verifica si se especifica una fecha
+            if (fecha) {
+                filtroFechaCliente = { fecha: { $eq: fecha } };
+            }
+        
+            const reservas = await Reserva.find({ establecimiento: establecimientoId, ...filtroEstado, ...filtroFechaCliente })
+                .sort({ actualizacion: -1 }) // Ordenar por el campo de actualizacion de manera descendente (de la más nueva a la más antigua)
+                .limit(limite)
+                .skip(skip)
+                .exec();
+        
             return reservas;
         },
-        encontrarCliente: async (_, {clienteId}, ctx) => {
-            console.log('obtenerrrrrrrrrrrrrr', clienteId)
-            const cliente =  await Cliente.findById(clienteId)
-            return cliente;
-        }
 
     },
     Mutation:{
-        crearAdmin: async (_, {input}, ctx) => {
-                const {telefono, password} = input;
-                const existeAdmin = await Admin.findOne({telefono})
-                if(existeAdmin) {
-                    throw new Error('El administrador ya esta registrado');
-                }
-                try {
-
-                    const salt = await bcrypt.genSalt(10);
-                    input.password = await bcrypt.hash(password, salt)
-                    // registrar nuevo ususario
-                    const NuevoAdmin = new Admin(input);
-                    console.log(NuevoAdmin)
-                    NuevoAdmin.save()
-                    return "Administrador creado correctamente"
-                } catch (error) {
-                    console.log(error)
-                }
-        },
-        enviarCodeVerificacionAdmin: async (_, {telefono}, ctx) => {
-            let verificacionCode = Math.floor(10000 + Math.random()*90000)
-            console.log('telefono,hhh', telefono)
-            const existeAdmin = await Admin.findOne({telefono})
-            if(!existeAdmin) {
-                throw new Error('El Usuario no está registrado');
-            }
-            try {
-                const mensaje = await SmsTwilioSend(telefono, `${verificacionCode} es tu codigo de verificacion` )
-                console.log('mensaje pe', mensaje.status)
-                if(mensaje.status === "queued"){
-                    const usuario = await Admin.findOneAndUpdate({telefono}, {code_verificacion: verificacionCode}, {new:true})
-                    if (usuario.code_verificacion === verificacionCode){
-                        return 'codigo enviado'
-                    }
-                console.log('usuario ps',usuario)
-
-                }
-            } catch (error) {
-                console.log('mensaje serio error', error)
-                throw new Error(error);
-
-            }
-           
-        },
-
-        verificarAdmin: async (_, {code, telefono}, ctx) => {
-            console.log('telefono, y codigo', telefono, code)
-            const existeAdmin = await Admin.findOne({telefono})
-            if(!existeAdmin) {
-                throw new Error('El Usuario no está registrado');
-            }
-            if(existeAdmin.code_verificacion === code){
-                await Admin.findOneAndUpdate({telefono}, {estado: 'verificado'}, {new:true})
-                    return 'correcto'
-            }else {
-                return 'incorrecto'
-            }
-        },
-
-        restaurarPasswordAdmin: async (_,{input}, ctx) => {
-            const {email, password, telefono} = input;
-                const usuario = await Admin.findOne({telefono})
-                if(!usuario) {
-                    throw new Error('Ese Usuario no existe');
-                }
-                try {
-                    //Hashear Password
-                    const salt = await bcrypt.genSalt(10);
-                    const passwordNew = await bcrypt.hash(password, salt)
-                     await Admin.findOneAndUpdate({telefono}, {password: passwordNew}, {new:true})
-            
-                     return "Contraseña restablecida correctamente"
-                } catch (error) {
-                    console.log(error)
-                }
-        },
-        autenticarAdmin: async (_, {input}, ctx) => {
-                const {telefono, password} = input;
-
-                //revisar si el usuario existe
-                const existeAdmin = await Admin.findOne({telefono})
-                console.log('admiiiin', existeAdmin)
-                if(!existeAdmin) {
-                    throw new Error('El Administrador no esta registrado');
-                }
-                const {nombre, apellido, nombreUsuario, sexo, id, email} = existeAdmin
-
-                const user = existeAdmin
-                //revisar si el password es correcto
-                const passwordCorrecto = await bcrypt.compare(password, existeAdmin.password)
-
-
-                if(!passwordCorrecto) {
-                    throw new Error('password Incorrecto');
-                }
-
-                return {
-                    user:user,
-                    accessToken:{ token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '17h')},
-                    refreshToken: {token: crearTokenAdmin(existeAdmin, process.env.PALABRATOKEN, '7d' )}
-                }
-        },
-
-
-        refreshAccessTokenAdmin: (parent, { refreshToken }) => {
-            // Verificar el token de actualización (refresh token)
-            try {
-              const usuario = jwt.verify(refreshToken, process.env.PALABRATOKEN);
-                console.log(usuario)
-              // Generar un nuevo token de acceso
-              const accessToken = crearTokenAdmin(usuario, process.env.PALABRATOKEN,'17h');
-
-              return { token: accessToken};
-            } catch (error) {
-              throw new Error('Token de actualización inválido');
-            }
-        },
-
-        verificarAutenticacion: (_,{input}, ctx) => {
-
-            if(!ctx.usuario){
-                throw new GraphQLError('Usuario No autenticado', {
-                        extensions: { code: 'UNAUTHENTICATED'},
-                });
-            }
-                return true
-        },
-
-
-        editarUsuario: async (_,{ input}, ctx) => {
-
-            if(!ctx.usuario){
-                throw new GraphQLError('Admin No autenticado', {
-                    extensions: { code: 'UNAUTHENTICATED'},
-                });
-            }
-            let usuario = await Admin.findById(ctx.usuario.id);
-
-            if (!usuario){
-                throw new Error('usuario no encontrado');
-            }
-            // Si la persona que edita es o no!!
-            usuario = await Admin.findOneAndUpdate({_id:ctx.usuario.id}, input, {new:true})
-            return usuario
-        },
-        editarFotoAdmin: async (_,{foto}, ctx) => {
-         
-            console.log('foto', foto)
-            let usuario = await Admin.findById(ctx.usuario.id);
-
-            if (!usuario){
-                throw new Error('usuario no encontrado');
-            }
-            // Si la persona que edita es o no!!
-            usuario = await Admin.findOneAndUpdate({_id:ctx.usuario.id}, {foto}, {new:true})
-            console.log('editarrrr cliente', usuario)
-            
-            return usuario.foto
-        },
-        actualizarTokenNotificaciones: async (_,{token}, ctx) => {
-
-            if(!ctx.usuario){
-                throw new GraphQLError('Admin No autenticado', {
-                    extensions: { code: 'UNAUTHENTICATED'},
-                });
-            }
-            let usuario = await Admin.findById(ctx.usuario.id);
-
-            console.log('USUARIO' , usuario)
-
-            if (!usuario){
-                throw new Error('usuario no encontrado');
-            }
-            // Si la persona que edita es o no!!
-            usuario = await Admin.findOneAndUpdate({_id:ctx.usuario.id},{notificaciones_token:token}, {new:true})
-            return usuario
-        },
         nuevoEstablecimiento: async (_,{input, ubicacion}, ctx) => {
             if (!ctx.usuario) {
                 throw new GraphQLError('Admin No autenticado', {
@@ -545,7 +331,7 @@ export const AdminResolvers = {
             return "reserva eliminada"
     },
 
-    actualizarReservaEstado: async (_,{id,  establecimiento, estado}, ctx) => {
+    actualizarReservaEstado: async (_,{id,  establecimiento, estado, actualizacion}, ctx) => {
         //si la tarea existe o no
         let reserva = await Reserva.findById(id);
         if (!reserva){
@@ -556,7 +342,7 @@ export const AdminResolvers = {
             throw new Error('No tienes las credenciales');
         }
 
-        reserva = await Reserva.findOneAndUpdate({_id:id}, {estado}, {new:true}).populate('establecimiento')
+        reserva = await Reserva.findOneAndUpdate({_id:id},{estado, actualizacion}, {new:true}).populate('establecimiento')
         //  console.log('verificacion', reserva)
 
         if (estado === 'denegado' || estado === 'aceptado') {
