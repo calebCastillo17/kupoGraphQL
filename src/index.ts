@@ -19,12 +19,10 @@ import { WebSocketServer } from 'ws';
 import { useServer } from 'graphql-ws/lib/use/ws';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import bodyParser from 'body-parser';
-import { UsuarioResolvers } from './schema/Resolvers/Usuario.js';
-import { UsuarioTypeDefs } from './schema/TypeDefs/Usuario.js';
 
 
-const resolvers = mergeResolvers([ClienteResolvers, AdminResolvers, ImperiotResolvers, UsuarioResolvers])
-const typeDefs = mergeTypeDefs([ClienteTypeDefs, AdminTypeDefs, ImperiotTypeDefs, UsuarioTypeDefs]);
+const resolvers = mergeResolvers([ClienteResolvers, AdminResolvers, ImperiotResolvers])
+const typeDefs = mergeTypeDefs([ClienteTypeDefs, AdminTypeDefs, ImperiotTypeDefs]);
 
 
 
