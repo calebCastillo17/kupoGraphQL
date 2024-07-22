@@ -333,11 +333,7 @@ export const AdminResolvers = {
 
     actualizarReservaEstado: async (_,{id,  establecimiento, estado, actualizacion}, ctx) => {
         //si la tarea existe o no
-
         let reserva = await Reserva.findById(id);
-
-         console.log('es la primera reserva',reserva)
-
         if (!reserva){
             throw new Error('reserva no encontrada');
         }
@@ -380,7 +376,18 @@ export const AdminResolvers = {
 
         // Guardar y retornar la tarea
     },
+    actualizarReserva: async (_,{id, input}, ctx) => {
+        //si la tarea existe o no
+        console.log('esta llegando el input', input)
+        let reserva = await Reserva.findById(id);
 
+        if (!reserva){
+            throw new Error('reserva no encontrada');
+        }
+        reserva = await Reserva.findOneAndUpdate({_id:id}, input, {new:true})
+        return reserva
+        // Guardar y retornar la tarea
+    },
 
     nuevaAutoReserva: async (_,{ userId, input}, ctx) => {
         console.log('desde relverexdxs', input)

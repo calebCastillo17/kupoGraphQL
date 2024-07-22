@@ -113,6 +113,7 @@ type Mutation {
 
     # reserva
     eliminarMiReserva(id:ID!, establecimiento: ID!) : String
+    actualizarReserva(id : ID!, input: ReservaInput): Reserva
     actualizarReservaEstado(id:ID!, establecimiento:String, actualizacion:String, estado: String): Reserva
     nuevaAutoReserva( input: ReservaInput, userId:ID!): Reserva
 

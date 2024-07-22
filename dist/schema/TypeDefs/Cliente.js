@@ -96,8 +96,8 @@ input Orden {
 }
 
 input ReservaInput {
-    establecimiento: ID!
-    espacioAlquilado:String!
+    establecimiento: ID
+    espacioAlquilado:String
     fecha:String
     abono: Int
     nombreUsuario: String

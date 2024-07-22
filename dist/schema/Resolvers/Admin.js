@@ -278,7 +278,6 @@ export const AdminResolvers = {
         actualizarReservaEstado: async (_, { id, establecimiento, estado, actualizacion }, ctx) => {
             //si la tarea existe o no
             let reserva = await Reserva.findById(id);
-            console.log('es la primera reserva', reserva);
             if (!reserva) {
                 throw new Error('reserva no encontrada');
             }
@@ -312,6 +311,17 @@ export const AdminResolvers = {
             console.log('enviando a', `RESERVAS_DE_${reserva.cliente}`);
             console.log('reserva', `RESERVAS_DE_${reserva.cliente}`);
             pubsub.publish(`RESERVAS_DE_${reserva.cliente}`, { cambioEstadoMiReservacion: reserva });
+            return reserva;
+            // Guardar y retornar la tarea
+        },
+        actualizarReserva: async (_, { id, input }, ctx) => {
+            //si la tarea existe o no
+            console.log('esta llegando el input', input);
+            let reserva = await Reserva.findById(id);
+            if (!reserva) {
+                throw new Error('reserva no encontrada');
+            }
+            reserva = await Reserva.findOneAndUpdate({ _id: id }, input, { new: true });
             return reserva;
             // Guardar y retornar la tarea
         },
