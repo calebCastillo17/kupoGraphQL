@@ -33,8 +33,11 @@ type EstablecimientoLista {
     notificaciones_token: String
     valoracion: Float
     premium: Boolean
+<<<<<<< HEAD
     distancia:Float
     telefonos: [String]
+=======
+>>>>>>> parent of d5282ee (Revert "cuarta actualizacion de 1.0.9 - desechable")
 }
 type EstablecimientoAltoque {
     nombre: String

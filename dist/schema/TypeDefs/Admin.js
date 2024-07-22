@@ -94,8 +94,11 @@ type  Query {
     obtenerRegistroReservas(establecimientoId: ID!, cancha: String,fechaMin:String, fechaMax: String, estados:[String]): [Reserva]
     obtenerMisNuevasReservas(establecimientoId: ID!): [Reserva]
 <<<<<<< HEAD
+<<<<<<< HEAD
     obtenerMiHistorialReservas(establecimientoId: ID!, estado: String, limite: Int, page:Int, fecha: String): [Reserva]
 =======
+=======
+>>>>>>> parent of d5282ee (Revert "cuarta actualizacion de 1.0.9 - desechable")
     encontrarMiEstablecimientoPorId(id:ID!): [MiEstablecimiento]
     obtenerMiHistorialReservas(establecimientoId: ID!, estado: String, limite: Int, page:Int): [Reserva]
 
@@ -211,8 +214,12 @@ type Mutation {
     # reserva
     eliminarMiReserva(id:ID!, establecimiento: ID!) : String
 <<<<<<< HEAD
+<<<<<<< HEAD
     actualizarReserva(id : ID!, input: ReservaInput): Reserva
     actualizarReservaEstado(id:ID!, establecimiento:String, actualizacion:String, estado: String): Reserva
+=======
+    actualizarReservaEstado(id:ID!, establecimiento:String, estado: String): Reserva
+>>>>>>> parent of d5282ee (Revert "cuarta actualizacion de 1.0.9 - desechable")
 =======
     actualizarReservaEstado(id:ID!, establecimiento:String, estado: String): Reserva
 >>>>>>> parent of d5282ee (Revert "cuarta actualizacion de 1.0.9 - desechable")
