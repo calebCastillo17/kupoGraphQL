@@ -34,8 +34,11 @@ type EstablecimientoLista {
     valoracion: Float
     premium: Boolean
 <<<<<<< HEAD
+<<<<<<< HEAD
     distancia:Float
     telefonos: [String]
+=======
+>>>>>>> parent of d5282ee (Revert "cuarta actualizacion de 1.0.9 - desechable")
 =======
 >>>>>>> parent of d5282ee (Revert "cuarta actualizacion de 1.0.9 - desechable")
 }
