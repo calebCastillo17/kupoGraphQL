@@ -36,7 +36,7 @@ const app = express();
 const httpServer = createServer(app);
 const wsServer = new WebSocketServer({
     server: httpServer,
-    path: '/graphql',
+    path: `/altoque/v1`,
 });
 const serverCleanup = useServer({ schema }, wsServer);
 const apolloServer = new ApolloServer({
@@ -58,7 +58,7 @@ const apolloServer = new ApolloServer({
 });
 await apolloServer.start();
 // app.use('/graphql', cors<cors.CorsRequest>(), json(), expressMiddleware(server));
-app.use('/graphql', cors(), bodyParser.json(), expressMiddleware(apolloServer, {
+app.use('/altoque/v1', cors(), bodyParser.json(), expressMiddleware(apolloServer, {
     context: async ({ res, req }) => {
         const token = req.headers['authorization'] || '';
         if (token) {
@@ -76,7 +76,7 @@ app.use('/graphql', cors(), bodyParser.json(), expressMiddleware(apolloServer, {
     },
 }));
 httpServer.listen(port, () => {
-    console.log(`🚀  Server ready at: http://localhost:${port}/graphql`);
+    console.log(`🚀  Server ready at: http://localhost:${port}/altoque/v1`);
 });
 // const { url } = await startStandaloneServer(server, {
 //   listen: { port: 5000 },

@@ -51,7 +51,7 @@ const port= 4000
 
   const wsServer = new WebSocketServer({
     server: httpServer,
-    path: '/graphql',
+    path: `/altoque/v1`,
   });
 
   const serverCleanup = useServer({ schema }, wsServer);
@@ -81,7 +81,7 @@ const port= 4000
   await apolloServer.start()
   // app.use('/graphql', cors<cors.CorsRequest>(), json(), expressMiddleware(server));
   app.use(
-    '/graphql', 
+    '/altoque/v1', 
     cors<cors.CorsRequest>(), 
     bodyParser.json(), 
     expressMiddleware(apolloServer, {
@@ -104,7 +104,7 @@ const port= 4000
   );
 
   httpServer.listen(port, () =>{
-    console.log(`🚀  Server ready at: http://localhost:${port}/graphql`)
+    console.log(`🚀  Server ready at: http://localhost:${port}/altoque/v1`)
   })
   // const { url } = await startStandaloneServer(server, {
   //   listen: { port: 5000 },
