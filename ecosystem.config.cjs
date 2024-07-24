@@ -11,7 +11,7 @@ module.exports = {
         },
         env_production: {
           NODE_ENV: "production",
-          PORT: 4001 // Puedes cambiar el puerto si es necesario
+          PORT: 4000 // Puedes cambiar el puerto si es necesario
         }
       }
     ]
