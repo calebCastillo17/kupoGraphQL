@@ -1,7 +1,7 @@
 module.exports = {
     apps: [
       {
-        name: "kupo3graphql",
+        name: "kupo3graphql-v1",
         script: "./dist/index.js",
         watch: true,
         ignore_watch: ["node_modules", "dist"],
