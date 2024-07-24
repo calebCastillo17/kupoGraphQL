@@ -26,7 +26,7 @@ conectarDB();
 //   typeDefs,
 //   resolvers,
 // });
-const port = 4000;
+const port = 4001;
 // Passing an ApolloServer instance to the `startStandaloneServer` function:
 //  1. creates an Express app
 //  2. installs your ApolloServer instance as middleware
