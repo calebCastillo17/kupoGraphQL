@@ -61,7 +61,7 @@ type  Query {
     obtenerMisReservas(establecimientoId: ID!, cancha: String,fechaMin:String, fechaMax: String): [Reserva]
     obtenerRegistroReservas(establecimientoId: ID!, cancha: String,fechaMin:String, fechaMax: String, estados:[String]): [Reserva]
     obtenerMisNuevasReservas(establecimientoId: ID!): [Reserva]
-    obtenerMiHistorialReservas(establecimientoId: ID!, estado: String, limite: Int, page:Int, fecha: String): [Reserva]
+    obtenerMiHistorialReservas(establecimientoId: ID!, estado: String, limite: Int, page:Int,  fechaMax:String, fechaMin:String,nombreUsuario:String): [Reserva]
     #cliente
     
 }

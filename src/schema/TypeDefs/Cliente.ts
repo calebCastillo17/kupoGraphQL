@@ -104,6 +104,7 @@ input ReservaInput {
     estado: String
     registro: String
     precio:Int
+    actualizacion:String
 }
 input UbicacionInput {
     latitude: Float

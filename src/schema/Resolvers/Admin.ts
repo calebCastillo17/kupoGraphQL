@@ -114,29 +114,39 @@ export const AdminResolvers = {
         },
 
 
-        obtenerMiHistorialReservas: async (_, { establecimientoId, estado, fecha, limite, page }, ctx) => {
-            console.log('mis reservas id', establecimientoId);
+        obtenerMiHistorialReservas: async (_, { establecimientoId, estado, fechaMax, fechaMin, limite, page , nombreUsuario}, ctx) => {
+            console.log('mis reservas id', estado, fechaMax, fechaMin, limite, page , nombreUsuario);
             const skip = (page - 1) * limite;
             let filtroEstado = {};
-            let filtroFechaCliente = {};
+            let filtroFecha = {};
+            let filtroNombreUsuario = {};
         
             // Verifica si se especifica un estado
-            if (estado !== null) {
+            if (estado ) {
                 filtroEstado = { estado };
             }
-        
-            // Verifica si se especifica una fecha
-            if (fecha) {
-                filtroFechaCliente = { fecha: { $eq: fecha } };
+            // const filtroFecha = fechaMax ? { $gte: fechaMin, $lte: fechaMax } : { $gte: fechaMin };
+            try {
+                if (fechaMax && fechaMin) {
+                    filtroFecha ={ actualizacion: { $gte: fechaMin, $lte: fechaMax }}
+                }
+                if (nombreUsuario) {
+                    filtroNombreUsuario ={nombreUsuario: new RegExp(`^${nombreUsuario}$`, 'i')}
+                }
+                // const filtroFecha = fechaMax && fechaMin? { $gte: fechaMin, $lte: fechaMax } : null;
+            
+                const reservas = await Reserva.find({ establecimiento: establecimientoId, ...filtroEstado, ...filtroFecha, ...filtroNombreUsuario })
+                    .sort({ actualizacion: -1 }) // Ordenar por el campo de actualizacion de manera descendente (de la más nueva a la más antigua)
+                    .limit(limite)
+                    .skip(skip)
+                    .exec();
+            
+                return reservas;
+            } catch (error) {
+                console.log(error)
             }
-        
-            const reservas = await Reserva.find({ establecimiento: establecimientoId, ...filtroEstado, ...filtroFechaCliente })
-                .sort({ actualizacion: -1 }) // Ordenar por el campo de actualizacion de manera descendente (de la más nueva a la más antigua)
-                .limit(limite)
-                .skip(skip)
-                .exec();
-        
-            return reservas;
+            // Verifica si se especifica una fecha
+
         },
 
     },
