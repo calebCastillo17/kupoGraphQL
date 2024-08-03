@@ -71,13 +71,16 @@ export  const UsuarioTypeDefs = `#graphql
         nombreUsuario: String!
         password:String!
     }
-
+  input  AutenticarRestablecimientoInput{
+        email: String!
+        password:String!
+    }
     input UserRegisterInput {
         nombre: String!
-        apellido: String!
-        nombreUsuario: String
+        apellido: String
+        nombreUsuario: String!
         email: String!
-        telefono: String
+        telefono: String!
         password:String!
         lugar: Lugar
         fecha_nacimiento: String
@@ -125,7 +128,7 @@ export  const UsuarioTypeDefs = `#graphql
         crearAdmin (input: UserRegisterInput): String
         verificarAdmin(email: String, code: Int ) : String!
         enviarCodeVerificacionAdmin(email: String ) : String
-        restaurarPasswordAdmin(input: AutenticarUsuarioInput): String
+        restaurarPasswordAdmin(input: AutenticarRestablecimientoInput): String
         editarUsuario(input: userInput): User
         editarFotoAdmin(foto: String): String
         actualizarTokenNotificaciones(token: String): User
@@ -136,7 +139,7 @@ export  const UsuarioTypeDefs = `#graphql
         verificarCliente(email: String, code:Int ) : String!
         enviarCodeVerificacionCliente(email: String ) : String
         refreshAccessTokenCliente(refreshToken: String!): AccessToken!
-        restaurarPassword(input: AutenticarUsuarioInput): String
+        restaurarPassword(input: AutenticarRestablecimientoInput): String
         editarUsuarioCliente(input: userInput): User
         editarPeloteroCliente(input: PeloteroInput): User
         editarFotoCliente(foto: String): User

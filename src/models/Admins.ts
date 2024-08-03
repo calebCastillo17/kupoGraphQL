@@ -9,7 +9,7 @@ const AdminsSchema =  new Schema({
     },
     apellido:{
         type: String,
-        require: true,
+        require: false,
         trim: true,
     },
     foto: {
@@ -33,7 +33,7 @@ const AdminsSchema =  new Schema({
         type: String,
         require: true,
         trim: true,
-        unique: true,
+        unique: false,
     },
     email:{
         type: String,
@@ -52,7 +52,7 @@ const AdminsSchema =  new Schema({
     },
     fecha_nacimiento: {
         type: Date,
-        required: true,
+        required: false,
     },
     lugar: {
             pais: { type: String },

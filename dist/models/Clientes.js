@@ -7,7 +7,7 @@ const ClientesSchema = new Schema({
     },
     apellido: {
         type: String,
-        require: true,
+        require: false,
         trim: true,
     },
     nombreUsuario: {
@@ -36,7 +36,7 @@ const ClientesSchema = new Schema({
         type: String,
         require: true,
         trim: true,
-        unique: true,
+        unique: false,
     },
     code_verificacion: {
         type: Number,
@@ -75,7 +75,7 @@ const ClientesSchema = new Schema({
     },
     fecha_nacimiento: {
         type: Date,
-        required: true,
+        required: false,
     },
     lugar: {
         pais: { type: String },

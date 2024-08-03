@@ -130,14 +130,19 @@ export const UsuarioResolvers = {
         },
         //////////ADMIN//////////////////////////////////////////
         crearAdmin: async (_, { input }, ctx) => {
-            const { telefono, password } = input;
+            const { telefono, password, email } = input;
+            console.log('este es el input0', input);
             // const existeCliente = await Cliente.findOne({telefono})
             // if(existeCliente) {
             //     throw new Error('Ese numero ya esta registrado como usuario');
             // }
-            const existeAdmin = await Admin.findOne({ telefono });
-            if (existeAdmin) {
-                throw new Error('El administrador ya esta registrado');
+            // const existeAdmin = await Admin.findOne({telefono})
+            // if(existeAdmin) {
+            //     throw new Error('Ya hay alguien registrado con ese telefono');
+            // }
+            const existeAdmin2 = await Admin.findOne({ email });
+            if (existeAdmin2) {
+                throw new Error('Ya hay alguien registrado con ese correo');
             }
             try {
                 const salt = await bcrypt.genSalt(10);
@@ -165,7 +170,7 @@ export const UsuarioResolvers = {
                 if (resultado.success) {
                     const usuario = await Admin.findOneAndUpdate({ email }, { code_verificacion: verificacionCode }, { new: true });
                     if (usuario.code_verificacion === verificacionCode) {
-                        return `codigo enviado a ${email} `;
+                        return `codigo enviado a ${email}, tu nombre de usuario es ${existeAdmin.nombreUsuario} `;
                     }
                     console.log('usuario ps', usuario);
                 }
@@ -270,9 +275,14 @@ export const UsuarioResolvers = {
         crearCliente: async (_, { input }, ctx) => {
             console.log(input);
             const { email, password, telefono } = input;
-            const existeCliente = await Cliente.findOne({ telefono });
-            if (existeCliente) {
-                throw new Error('Ese numero ya esta registrado');
+            console.log('este es el input', input);
+            // const existeCliente = await Cliente.findOne({telefono})
+            // if(existeCliente) {
+            //     throw new Error('Ese numero ya esta registrado');
+            // }
+            const existeCliente2 = await Cliente.findOne({ email });
+            if (existeCliente2) {
+                throw new Error('Ya hay alguien registrado con ese correo');
             }
             // const existeAdmin = await Admin.findOne({telefono})
             // if(existeAdmin) {
@@ -312,7 +322,7 @@ export const UsuarioResolvers = {
                 if (resultado.success) {
                     const usuario = await Cliente.findOneAndUpdate({ email }, { code_verificacion: verificacionCode }, { new: true });
                     if (usuario.code_verificacion === verificacionCode) {
-                        return `codigo enviado a ${email} `;
+                        return `codigo enviado a ${email}, tu nombre de usuario es ${existeClient.nombreUsuario} `;
                     }
                     console.log('usuario ps', usuario);
                 }
@@ -352,7 +362,7 @@ export const UsuarioResolvers = {
         restaurarPassword: async (_, { input }, ctx) => {
             const { email, password, telefono } = input;
             console.log(password, telefono);
-            const existeClient = await Cliente.findOne({ telefono });
+            const existeClient = await Cliente.findOne({ email });
             if (!existeClient) {
                 throw new Error('El Usuario no está registrado');
             }
@@ -360,7 +370,7 @@ export const UsuarioResolvers = {
                 //Hashear Password
                 const salt = await bcrypt.genSalt(10);
                 const passwordNew = await bcrypt.hash(password, salt);
-                await Cliente.findOneAndUpdate({ telefono }, { password: passwordNew }, { new: true });
+                await Cliente.findOneAndUpdate({ email }, { password: passwordNew }, { new: true });
                 return "Contraseña restablecida correctamente";
             }
             catch (error) {
