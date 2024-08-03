@@ -1,7 +1,9 @@
 import Establecimiento from "../../models/Establecimientos.js";
+import Cliente from "../../models/Clientes.js";
 import Admin from "../../models/Admins.js";
 import Cancha from "../../models/Canchas.js";
 import Reserva from "../../models/Reservas.js";
+import Invitacion from "../../models/Invitaciones.js";
 import { GraphQLError } from "graphql";
 import dotenv from 'dotenv';
 import { PubSub } from "graphql-subscriptions";
@@ -175,6 +177,12 @@ export const ClienteResolvers = {
                 throw error;
             }
         },
+        obtenerInvitacionesPorReserva: async (_, { reservaId }) => {
+            const invitaciones = await Invitacion.find({ reserva: reservaId })
+                .populate('creador')
+                .populate('reserva');
+            return invitaciones;
+        },
     },
     Mutation: {
         nuevaReserva: async (_, { userId, input }, ctx) => {
@@ -318,6 +326,51 @@ export const ClienteResolvers = {
                 };
             }
         },
+        crearInvitacion: async (_, { input }) => {
+            // console.log(input)
+            try {
+                const nuevaInvitacion = new Invitacion({
+                    ...input,
+                    // registro: new Date(),
+                    // actualizacion: new Date(),
+                });
+                const invitacion = await nuevaInvitacion.save();
+                console.log('esta es la invitacion', invitacion);
+                // Buscar el administrador asociado al establecimiento
+                const cliente = await Cliente.findOne({ _id: invitacion.invitado });
+                if (!cliente) {
+                    throw new GraphQLError('Usuariono encontrado.');
+                }
+                const pushToken = cliente.notificaciones_token;
+                // Convertir resultado en un objeto que incluye id en lugar de _id
+                if (pushToken) {
+                    const body = 'Te han invitado a un partido';
+                    const data = {
+                        invitacion: invitacion,
+                        mensaje: 'Nueva Invitacion realizada',
+                        url: 'reservas'
+                    };
+                    await enviarNotificacion(pushToken, body, data);
+                }
+                // Publicar evento de nueva reserva
+                // console.log('Reserva realizada:', resultado);
+                return invitacion;
+            }
+            catch (error) {
+                console.log(error);
+            }
+        },
+        editarInvitacion: async (_, { id, input }) => {
+            const actualizacion = new Date();
+            const invitacion = await Invitacion.findByIdAndUpdate(id, { ...input, actualizacion }, { new: true }).populate('creador').populate('reserva');
+            return invitacion;
+        },
+        eliminarInvitacion: async (_, { id }) => {
+            const invitacion = await Invitacion.findByIdAndDelete(id)
+                .populate('creador')
+                .populate('reserva');
+            return invitacion;
+        },
     },
     Reserva: {
     // establecimiento: async (reserva) => {
@@ -328,6 +381,15 @@ export const ClienteResolvers = {
     },
     Establecimiento: {
         id: (establecimiento) => establecimiento._id.toString(),
+    },
+    Invitacion: {
+        creador: async (invitacion) => {
+            return await Cliente.findById(invitacion.creador);
+        },
+        reserva: async (invitacion) => {
+            console.log('buscando reserva');
+            return await Reserva.findById(invitacion.reserva);
+        },
     },
     Subscription: {
         nuevaReservacion: {

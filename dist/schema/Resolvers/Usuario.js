@@ -3,8 +3,8 @@ import Admin from "../../models/Admins.js";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { GraphQLError } from "graphql";
-import SmsTwilioSend from "../../services/SmsTwilio.js";
 import { PubSub } from "graphql-subscriptions";
+import mailer from "../../config/mailer.js";
 const pubsub = new PubSub();
 const crearTokenUsuario = (Usuario, secreta, expiresIn) => {
     const { id, email, nombre } = Usuario;
@@ -153,20 +153,19 @@ export const UsuarioResolvers = {
                 throw new Error('Error al crear Administrador');
             }
         },
-        enviarCodeVerificacionAdmin: async (_, { telefono }, ctx) => {
+        enviarCodeVerificacionAdmin: async (_, { email }, ctx) => {
             let verificacionCode = Math.floor(10000 + Math.random() * 90000);
-            console.log('telefono,hhh', telefono);
-            const existeAdmin = await Admin.findOne({ telefono });
+            console.log('correo,hhh', email);
+            const existeAdmin = await Admin.findOne({ email });
             if (!existeAdmin) {
                 throw new Error('El Usuario no está registrado');
             }
             try {
-                const mensaje = await SmsTwilioSend(telefono, `${verificacionCode} es tu codigo de verificacion`);
-                console.log('mensaje pe', mensaje.status);
-                if (mensaje.status === "queued") {
-                    const usuario = await Admin.findOneAndUpdate({ telefono }, { code_verificacion: verificacionCode }, { new: true });
+                const resultado = await mailer(email, verificacionCode);
+                if (resultado.success) {
+                    const usuario = await Admin.findOneAndUpdate({ email }, { code_verificacion: verificacionCode }, { new: true });
                     if (usuario.code_verificacion === verificacionCode) {
-                        return 'codigo enviado';
+                        return `codigo enviado a ${email} `;
                     }
                     console.log('usuario ps', usuario);
                 }
@@ -176,14 +175,14 @@ export const UsuarioResolvers = {
                 throw new Error(error);
             }
         },
-        verificarAdmin: async (_, { code, telefono }, ctx) => {
-            console.log('telefono, y codigo', telefono, code);
-            const existeAdmin = await Admin.findOne({ telefono });
+        verificarAdmin: async (_, { code, email }, ctx) => {
+            console.log('telefono, y codigo', email, code);
+            const existeAdmin = await Admin.findOne({ email });
             if (!existeAdmin) {
                 throw new Error('El Usuario no está registrado');
             }
             if (existeAdmin.code_verificacion === code) {
-                await Admin.findOneAndUpdate({ telefono }, { estado: 'verificado' }, { new: true });
+                await Admin.findOneAndUpdate({ email }, { estado: 'verificado' }, { new: true });
                 return 'correcto';
             }
             else {
@@ -191,8 +190,8 @@ export const UsuarioResolvers = {
             }
         },
         restaurarPasswordAdmin: async (_, { input }, ctx) => {
-            const { email, password, telefono } = input;
-            const usuario = await Admin.findOne({ telefono });
+            const { email, password } = input;
+            const usuario = await Admin.findOne({ email });
             if (!usuario) {
                 throw new Error('Ese Usuario no existe');
             }
@@ -200,7 +199,7 @@ export const UsuarioResolvers = {
                 //Hashear Password
                 const salt = await bcrypt.genSalt(10);
                 const passwordNew = await bcrypt.hash(password, salt);
-                await Admin.findOneAndUpdate({ telefono }, { password: passwordNew }, { new: true });
+                await Admin.findOneAndUpdate({ email }, { password: passwordNew }, { new: true });
                 return "Contraseña restablecida correctamente";
             }
             catch (error) {
@@ -293,20 +292,27 @@ export const UsuarioResolvers = {
                 console.log(error);
             }
         },
-        enviarCodeVerificacionCliente: async (_, { telefono }, ctx) => {
+        enviarCodeVerificacionCliente: async (_, { email }, ctx) => {
             let verificacionCode = Math.floor(10000 + Math.random() * 90000);
-            console.log('telefono,hhh', telefono);
-            const existeClient = await Cliente.findOne({ telefono });
+            console.log('telefono,hhh', email);
+            const existeClient = await Cliente.findOne({ email });
             if (!existeClient) {
                 throw new Error('El Usuario no está registrado');
             }
             try {
-                const mensaje = await SmsTwilioSend(telefono, `${verificacionCode} es tu codigo de verificacion`);
-                console.log('mensaje pe', mensaje.status);
-                if (mensaje.status === "queued") {
-                    const usuario = await Cliente.findOneAndUpdate({ telefono }, { code_verificacion: verificacionCode }, { new: true });
+                // const mensaje = await SmsTwilioSend(email, `${verificacionCode} es tu codigo de verificacion` )
+                // console.log('mensaje pe', mensaje.status)
+                // if(mensaje.status === "queued"){
+                //     const usuario = await Cliente.findOneAndUpdate({email}, {code_verificacion: verificacionCode}, {new:true})
+                //     if (usuario.code_verificacion === verificacionCode){
+                //         return 'codigo enviado'
+                //     }
+                // console.log('usuario ps',usuario)
+                const resultado = await mailer(email, verificacionCode);
+                if (resultado.success) {
+                    const usuario = await Cliente.findOneAndUpdate({ email }, { code_verificacion: verificacionCode }, { new: true });
                     if (usuario.code_verificacion === verificacionCode) {
-                        return 'codigo enviado';
+                        return `codigo enviado a ${email} `;
                     }
                     console.log('usuario ps', usuario);
                 }
@@ -316,14 +322,14 @@ export const UsuarioResolvers = {
                 throw new Error(error);
             }
         },
-        verificarCliente: async (_, { code, telefono }, ctx) => {
-            console.log('telefono, y codigo', telefono, code);
-            const existeAdmin = await Cliente.findOne({ telefono });
+        verificarCliente: async (_, { code, email }, ctx) => {
+            console.log('email, y codigo', email, code);
+            const existeAdmin = await Cliente.findOne({ email });
             if (!existeAdmin) {
                 throw new Error('El Usuario no está registrado');
             }
             if (existeAdmin.code_verificacion === code) {
-                await Cliente.findOneAndUpdate({ telefono }, { estado: 'verificado' }, { new: true });
+                await Cliente.findOneAndUpdate({ email }, { estado: 'verificado' }, { new: true });
                 return 'correcto';
             }
             else {

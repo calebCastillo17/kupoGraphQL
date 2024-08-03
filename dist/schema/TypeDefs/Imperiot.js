@@ -29,7 +29,7 @@ export const ImperiotTypeDefs = `#graphql
         token: String
     }
     type  Query {
-        obtenerClientes(input: UsuarioBusquedaInput, offset:Int, limit:Int): [User]
+        obtenerClientes(input: UsuarioBusquedaInput, offset:Int, limit:Int): [UserPublic]
         obtenerAdmins: [Admin]
     }
 

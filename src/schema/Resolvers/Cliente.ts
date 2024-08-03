@@ -3,6 +3,7 @@ import Cliente from "../../models/Clientes.js";
 import Admin from "../../models/Admins.js";
 import Cancha from "../../models/Canchas.js";
 import Reserva from "../../models/Reservas.js";
+import Invitacion from "../../models/Invitaciones.js";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { GraphQLError } from "graphql";
@@ -140,7 +141,7 @@ export const  ClienteResolvers = {
             return canchas;
         },
 
-       
+
         obtenerReservasPorEstab: async (_, { establecimientoId, cancha, fechaMin, fechaMax }, ctx) => {
             console.log('mis reservas id', establecimientoId)
             const now = new Date();
@@ -161,26 +162,26 @@ export const  ClienteResolvers = {
             try {
                 const skip = (page - 1) * limite;
                 const query:any = { cliente: clienteId };
-        
+
                 // Añadir fecha a la consulta solo si no es null
                 if (fecha !== null) {
                     query.fecha = fecha;
                 }
-        
+
                 const reservas = await Reserva.find(query)
                                               .sort({ registro: -1 }) // Ordenar por campo 'registro' en orden descendente
                                               .populate('establecimiento') // Poblar el campo 'establecimiento'
                                               .limit(limite) // Limitar la cantidad de resultados
                                               .skip(skip) // Omitir una cantidad de resultados según la paginación
                                               .exec(); // Ejecutar la consulta
-        
+
                 return reservas;
             } catch (error) {
                 console.error('Error al obtener las reservas realizadas:', error);
                 throw error;
             }
         },
-        
+
 
         obtenerHistorialReservas: async (_, { clienteId, limite, page }, ctx) => {
             try {
@@ -202,8 +203,17 @@ export const  ClienteResolvers = {
             }
         },
 
-
+        obtenerInvitacionesPorReserva: async(_, { reservaId }) => {
+            const invitaciones = await Invitacion.find({ reserva: reservaId })
+                .populate('creador')
+                .populate('reserva');
+            return invitaciones
+        },
     },
+
+
+
+
     Mutation:{
         nuevaReserva: async (_, { userId, input }, ctx) => {
             console.log('desde nueva reserva', input);
@@ -215,7 +225,7 @@ export const  ClienteResolvers = {
                     fecha: input.fecha,
                     estado: { $nin: ['denegado', 'anulado'] } // Excluir reservas con estado 'denegado' y 'anulado'
                 });
-        
+
                 if (reservaExistente) {
                     // Si ya existe una reserva para la misma hora y espacio, lanzar un error
                     console.log('ya existe esta reserva')
@@ -250,8 +260,8 @@ export const  ClienteResolvers = {
                 }
                 const pushToken = administrador.notificaciones_token;
                  // Convertir resultado en un objeto que incluye id en lugar de _id
-               
-         
+
+
                 if (pushToken) {
                     let reserva:any = resultado.toObject();
                     reserva.id = reserva._id;
@@ -365,8 +375,65 @@ export const  ClienteResolvers = {
         }
       },
 
+        crearInvitacion: async(_, { input }) => {
+            // console.log(input)
 
+            try {
+                const nuevaInvitacion = new Invitacion({
+                    ...input,
+                    // registro: new Date(),
+                    // actualizacion: new Date(),
+                });
+
+            const invitacion = await nuevaInvitacion.save();
+            console.log('esta es la invitacion', invitacion)
+
+              // Buscar el administrador asociado al establecimiento
+              const cliente = await Cliente.findOne({ _id: invitacion.invitado });
+
+              if (!cliente) {
+                  throw new GraphQLError('Usuariono encontrado.');
+              }
+              const pushToken = cliente.notificaciones_token;
+               // Convertir resultado en un objeto que incluye id en lugar de _id
+
+
+              if (pushToken) {
+                
+                  const body = 'Te han invitado a un partido';
+                  const data = {
+                      invitacion: invitacion,
+                      mensaje: 'Nueva Invitacion realizada',
+                      url: 'reservas'
+                  };
+                  await enviarNotificacion(pushToken, body, data);
+              }
+              // Publicar evento de nueva reserva
+              // console.log('Reserva realizada:', resultado);
+            return invitacion
+
+            } catch (error) {
+                console.log(error)
+            }
+        },
+
+         editarInvitacion: async(_, { id, input }) =>  {
+            const actualizacion = new Date();
+            const invitacion = await Invitacion.findByIdAndUpdate(
+                id,
+                { ...input, actualizacion },
+                { new: true }
+            ).populate('creador').populate('reserva');
+            return invitacion
+        },
+         eliminarInvitacion :async(_, { id }) => {
+            const invitacion = await Invitacion.findByIdAndDelete(id)
+                .populate('creador')
+                .populate('reserva');
+            return invitacion;
+        },
     },
+
     Reserva: {
         // establecimiento: async (reserva) => {
         //     console.log('pasa por resolver reserva')
@@ -377,16 +444,26 @@ export const  ClienteResolvers = {
     Establecimiento: {
         id: (establecimiento) => establecimiento._id.toString(),
     },
+    Invitacion: {
+        creador: async (invitacion) => {
+            return await Cliente.findById(invitacion.creador);
+        },
+
+        reserva: async (invitacion) => {
+            console.log('buscando reserva')
+            return await Reserva.findById(invitacion.reserva);
+        },
+    },
 
     Subscription: {
         nuevaReservacion: {
-          subscribe: (_, {establecimientoId}) => { 
+          subscribe: (_, {establecimientoId}) => {
             console.log('subsribiendo a', establecimientoId)
             return pubsub.asyncIterator(`RESERVAS_DE_${establecimientoId}`)
         }
         //    return context.pubsub.asyncIterator(`NUEVA_NOTIFICACION_${hotelId}`);
         },
-        
-      
+
+
       },
   };

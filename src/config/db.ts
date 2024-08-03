@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 const uridot = process.env.DB_MONGO;
-const uri = `mongodb+srv://Caleb17:Domiotica17@cluster0.h05bhwy.mongodb.net/kupo12`
 
 export const conectarDB  =  async () => {
 

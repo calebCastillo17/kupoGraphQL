@@ -102,14 +102,6 @@ type User {
     lugar: Lugar
 }
 
-type UserPublic {
-    nombre: String
-    apellido: String
-    nombreUsuario:String
-    sexo: String
-    telefono: String
-    notificaciones_token: String
-}
 
 type PagoResultado {
     success: Boolean

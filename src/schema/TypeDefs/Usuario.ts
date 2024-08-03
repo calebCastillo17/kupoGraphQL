@@ -123,8 +123,8 @@ export  const UsuarioTypeDefs = `#graphql
         verificarNombreUsuario(nombreUsuario: String): String!
         # administradores
         crearAdmin (input: UserRegisterInput): String
-        verificarAdmin(nombreUsuario: String, code: Int ) : String!
-        enviarCodeVerificacionAdmin(telefono: String ) : String
+        verificarAdmin(email: String, code: Int ) : String!
+        enviarCodeVerificacionAdmin(email: String ) : String
         restaurarPasswordAdmin(input: AutenticarUsuarioInput): String
         editarUsuario(input: userInput): User
         editarFotoAdmin(foto: String): String
@@ -133,8 +133,8 @@ export  const UsuarioTypeDefs = `#graphql
 
         # usuario
         crearCliente (input: UserRegisterInput): String
-        verificarCliente(telefono: String, code:Int ) : String!
-        enviarCodeVerificacionCliente(telefono: String ) : String
+        verificarCliente(email: String, code:Int ) : String!
+        enviarCodeVerificacionCliente(email: String ) : String
         refreshAccessTokenCliente(refreshToken: String!): AccessToken!
         restaurarPassword(input: AutenticarUsuarioInput): String
         editarUsuarioCliente(input: userInput): User

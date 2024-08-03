@@ -17,7 +17,18 @@ type Precio{
     dia:Int
     noche: Int
 }
-
+type Invitacion {
+    id: ID!
+    creador: Cliente
+    invitado: ID
+    nombreUsuarioCreador: String
+    nombreUsuarioInvitado: String
+    reserva: Reserva
+    fechaReserva: String
+    registro: String
+    estado: String
+    actualizacion: String
+}
 type Establecimiento {
     nombre: String
     id: ID
@@ -65,7 +76,13 @@ type UserPublic {
     sexo: String
     telefono: String
     notificaciones_token: String
+    foto: String
+    _id:ID
+    lugar: Localidad
+    fecha_nacimiento: String
+    pelotero: Pelotero
 }
+
 type PagoResultado {
     success: Boolean
     message: String
@@ -78,6 +95,8 @@ type  Query {
     obtenerReservasPorEstab(establecimientoId: ID!,cancha:String, fechaMin:String, fechaMax: String): [Reserva]
     obtenerReservasRealizadas(clienteId: ID! , fecha:String , limite: Int, page:Int): [Reserva]
     obtenerHistorialReservas(clienteId: ID!, limite: Int, page:Int): [Reserva]
+
+    obtenerInvitacionesPorReserva(reservaId: ID!): [Invitacion!]!
 }
 
 input PagoInput {
@@ -94,7 +113,17 @@ input Orden {
     user_id: String
     establecimiento_id: String
 }
-
+ input InvitacionInput {
+    creador: ID!
+    invitado: ID
+    nombreUsuarioCreador: String
+    nombreUsuarioInvitado: String
+    reserva: ID!
+    fechaReserva: String
+    estado: String
+    registro:String
+    actualizacion:String
+}
 input ReservaInput {
     establecimiento: ID
     espacioAlquilado:String
@@ -111,6 +140,14 @@ input UbicacionInput {
     longitude: Float
 }
 
+input EditarInvitacionInput {
+    nombreUsuarioCreador: String
+    nombreUsuarioInvitado: String
+    reserva: ID
+    fechaReserva: String
+    estado: String
+}
+
 
 type Mutation {
 
@@ -121,7 +158,9 @@ type Mutation {
     actualizarReservaEstadoCliente(id:ID!, clienteId :String, estado: String): Reserva
     realizarPagoTarjeta(input: PagoInput!): PagoResultado!
 
-    
+    crearInvitacion(input: InvitacionInput!): Invitacion!
+    editarInvitacion(id: ID!, input: EditarInvitacionInput!): Invitacion!
+    eliminarInvitacion(id: ID!): Invitacion
 }
 
 type Subscription {
