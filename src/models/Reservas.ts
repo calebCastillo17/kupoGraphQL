@@ -18,7 +18,7 @@ interface Reserva {
 const ReservasSchema = new Schema<Reserva>({
     fecha: {
         type: Date,
-        required: true,
+        required: true, 
       },
     abono:{
         type: Number,
@@ -27,6 +27,7 @@ const ReservasSchema = new Schema<Reserva>({
     precio:{
         type: Number,
         require: true,
+        default: 0
     },
     cliente:{
         type: Schema.Types.ObjectId,

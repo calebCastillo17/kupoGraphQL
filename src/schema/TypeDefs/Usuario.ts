@@ -29,7 +29,7 @@ export  const UsuarioTypeDefs = `#graphql
         sexo: String
         telefono: String
         id:ID
-        notificaciones_token: String
+        notificaciones_token: [String]
         lugar: Localidad
         fecha_nacimiento: String
         pelotero: Pelotero
@@ -133,6 +133,7 @@ export  const UsuarioTypeDefs = `#graphql
         editarFotoAdmin(foto: String): String
         actualizarTokenNotificaciones(token: String): User
         refreshAccessTokenAdmin(refreshToken: String!): AccessToken!
+        eliminarTokenNotificaciones(token: String, userId: ID):String
 
         # usuario
         crearCliente (input: UserRegisterInput): String
@@ -144,6 +145,6 @@ export  const UsuarioTypeDefs = `#graphql
         editarPeloteroCliente(input: PeloteroInput): User
         editarFotoCliente(foto: String): User
         actualizarTokenNotificacionesCliente(token: String): User
-
+        eliminarTokenNotificacionesCliente(token: String, userId: ID):String
     }
 `;

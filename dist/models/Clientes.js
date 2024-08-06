@@ -65,7 +65,7 @@ const ClientesSchema = new Schema({
         estatura: { type: String },
     },
     notificaciones_token: {
-        type: String,
+        type: [String],
         trim: true,
     },
     password: {

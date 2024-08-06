@@ -19,7 +19,7 @@ type Precio{
 }
 type Invitacion {
     id: ID!
-    creador: Cliente
+    creador: UserPublic
     invitado: ID
     nombreUsuarioCreador: String
     nombreUsuarioInvitado: String
@@ -58,8 +58,8 @@ type Reserva {
     actualizacion: String
     estado: String
     nombreUsuario: String
-    establecimiento: Establecimiento
     precio:Int
+    establecimiento: Establecimiento
 }
 type Ubicacion {
     longitude: Float!
@@ -75,7 +75,7 @@ type UserPublic {
     nombreUsuario:String
     sexo: String
     telefono: String
-    notificaciones_token: String
+    notificaciones_token: [String]
     foto: String
     _id:ID
     lugar: Localidad
@@ -97,6 +97,7 @@ type  Query {
     obtenerHistorialReservas(clienteId: ID!, limite: Int, page:Int): [Reserva]
 
     obtenerInvitacionesPorReserva(reservaId: ID!): [Invitacion!]!
+    obtenerInvitaciones(invitadoId: ID!, fechaMin:String , fechaMax:String , limite: Int, page:Int, ): [Invitacion!]!
 }
 
 input PagoInput {

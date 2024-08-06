@@ -3,8 +3,8 @@ import Cliente from "../../models/Clientes.js";
 import Cancha from "../../models/Canchas.js";
 import Reserva from "../../models/Reservas.js";
 import { GraphQLError } from "graphql";
+import NotificacionesPush from "../../services/NotificacionesExpo.js";
 import { PubSub } from "graphql-subscriptions";
-import enviarNotificacion from "../../services/EnviarNotificacionExpo.js";
 const pubsub = new PubSub();
 const horaActual = new Date();
 console.log(horaActual.getHours());
@@ -52,7 +52,7 @@ export const AdminResolvers = {
                 filtro.espacioAlquilado = cancha;
             }
             const reservas = await Reserva.find(filtro).sort({ fecha: 1 }).exec();
-            console.log('estas son mis reservas ', reservas);
+            // console.log('estas son mis reservas ', reservas);
             return reservas;
         },
         obtenerRegistroReservas: async (_, { establecimientoId, cancha, fechaMin, fechaMax, estados }, ctx) => {
@@ -80,7 +80,7 @@ export const AdminResolvers = {
             const now = new Date();
             // const reservas =  await Reserva.find({establecimiento:establecimientoId, fecha: { $gte: now }, estado: { $ne: 'denegado' }}).sort({ fecha: 1 }).exec();
             const reservas = await Reserva.find({ establecimiento: establecimientoId, estado: 'solicitud', fecha: { $gte: now } }).sort({ fecha: 1 }).exec();
-            console.log('estas son mis reservas ', reservas);
+            // console.log('estas son mis reservas ' ,reservas)
             return reservas;
         },
         obtenerMiHistorialReservas: async (_, { establecimientoId, estado, fechaMax, fechaMin, limite, page, nombreUsuario }, ctx) => {
@@ -304,14 +304,16 @@ export const AdminResolvers = {
                     const cliente = await Cliente.findById(reserva.cliente);
                     const pushToken = cliente.notificaciones_token;
                     console.log('es la segunda reserva', pushToken);
-                    if (pushToken) {
-                        const body = estado === 'aceptado' ? 'Tu reserva ha sido aceptada' : 'Tu reserva ha sido rechazada';
-                        const data = {
-                            estado: estado,
-                            reservaId: reserva.id,
-                            url: 'reservas_hechas'
+                    if (pushToken.length > 0) {
+                        const message = {
+                            body: estado === 'aceptado' ? 'Tu reserva ha sido aceptada' : 'Tu reserva ha sido rechazada',
+                            data: {
+                                estado: estado,
+                                reservaId: reserva.id,
+                                url: 'reservas_hechas',
+                            }
                         };
-                        await enviarNotificacion(pushToken, body, data);
+                        await NotificacionesPush(pushToken, message);
                     }
                     // Enviar la notificación al cliente
                 }

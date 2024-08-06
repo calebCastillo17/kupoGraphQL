@@ -9,7 +9,7 @@ import dotenv from 'dotenv';
 import { PubSub } from "graphql-subscriptions";
 import mercadopago from "mercadopago";
 import { toZonedTime } from 'date-fns-tz';
-import enviarNotificacion from "../../services/EnviarNotificacionExpo.js";
+import NotificacionesPush from "../../services/NotificacionesExpo.js";
 // Función para normalizar una fecha a una zona horaria específica
 dotenv.config();
 const pubsub = new PubSub();
@@ -26,11 +26,12 @@ export const ClienteResolvers = {
         },
         obtenerEstablecimientos: async (_, { nombre, ubicacion, metros, limit, offset, fecha }) => {
             console.log('Parametros de entrada:', nombre, ubicacion, metros, limit, offset, fecha);
-            const filter = {};
+            const filter = { validado: true }; // Filtro inicial para establecimientos validados
             const pipeline = [];
             if (nombre) {
                 filter.nombre = { $regex: new RegExp(`.*${nombre}`, 'i') };
             }
+            pipeline.push({ $match: filter });
             if (ubicacion) {
                 pipeline.push({
                     $geoNear: {
@@ -183,6 +184,23 @@ export const ClienteResolvers = {
                 .populate('reserva');
             return invitaciones;
         },
+        obtenerInvitaciones: async (_, { invitadoId, fechaMin, FechaMax, page, limite }) => {
+            console.log('inviato', invitadoId);
+            const skip = (page - 1) * limite;
+            const query = { cliente: invitadoId };
+            // Añadir fecha a la consulta solo si no es null
+            if (fechaMin !== null) {
+                query.fecha = fechaMin;
+            }
+            const invitaciones = await Invitacion.find({ invitado: invitadoId })
+                .sort({ registro: -1 })
+                .populate('creador')
+                .populate('reserva')
+                .limit(limite) // Limitar la cantidad de resultados
+                .skip(skip) // Omitir una cantidad de resultados según la paginación
+                .exec(); // Ejecutar la consulta
+            return invitaciones;
+        },
     },
     Mutation: {
         nuevaReserva: async (_, { userId, input }, ctx) => {
@@ -215,6 +233,19 @@ export const ClienteResolvers = {
                 const resultado = await nuevaReserva.save();
                 // Buscar el establecimiento asociado a la reserva
                 const establecimiento = await Establecimiento.findById(input.establecimiento);
+                const nuevaInvitacion = new Invitacion({
+                    creador: nuevaReserva.cliente,
+                    invitado: nuevaReserva.cliente,
+                    nombreUsuarioCreador: nuevaReserva.nombreUsuario,
+                    nombreUsuarioInvitado: nuevaReserva.nombreUsuario,
+                    reserva: nuevaReserva.id,
+                    fechaReserva: nuevaReserva.fecha,
+                    estado: 'aceptado',
+                    registro: nuevaReserva.registro,
+                    actualizacion: nuevaReserva.actualizacion,
+                });
+                const invitacion = await nuevaInvitacion.save();
+                console.log('esta es la invitacion', invitacion);
                 if (!establecimiento) {
                     throw new GraphQLError('Establecimiento no encontrado.');
                 }
@@ -225,21 +256,25 @@ export const ClienteResolvers = {
                 }
                 const pushToken = administrador.notificaciones_token;
                 // Convertir resultado en un objeto que incluye id en lugar de _id
-                if (pushToken) {
+                console.log('estos son los token al crear una reserva,', pushToken);
+                if (pushToken.length > 0) {
                     let reserva = resultado.toObject();
+                    console.log('esta es la reservaaa', resultado);
                     reserva.id = reserva._id;
                     reserva.__typename = "Reserva",
                         delete reserva._id;
                     delete reserva.__v;
                     delete reserva.establecimiento;
-                    const body = 'Nueva reserva realizada';
-                    const data = {
-                        reserva: reserva,
-                        estado: reserva.estado,
-                        mensaje: 'Nueva reserva realizada',
-                        url: 'reservas'
+                    const message = {
+                        body: 'Nueva reserva realizada',
+                        data: {
+                            reserva: reserva,
+                            estado: reserva.estado,
+                            mensaje: 'Nueva reserva realizada',
+                            url: 'reservas'
+                        }
                     };
-                    await enviarNotificacion(pushToken, body, data);
+                    await NotificacionesPush(pushToken, message);
                 }
                 // Publicar evento de nueva reserva
                 pubsub.publish(`RESERVAS_DE_${input.establecimiento}`, { nuevaReservacion: resultado });
@@ -259,6 +294,10 @@ export const ClienteResolvers = {
             // Si la persona que edita es o no
             if (reserva.cliente.toString() !== clienteId) {
                 throw new Error('No tienes las credenciales');
+            }
+            let invitacion = await Invitacion.findOne({ reserva: id });
+            if (invitacion) {
+                await Invitacion.findByIdAndDelete(invitacion._id);
             }
             console.log("nuevoooooooo", id, clienteId);
             await Reserva.findOneAndDelete({ _id: id });
@@ -334,7 +373,9 @@ export const ClienteResolvers = {
                     // registro: new Date(),
                     // actualizacion: new Date(),
                 });
-                const invitacion = await nuevaInvitacion.save();
+                const savedInvitacion = await nuevaInvitacion.save();
+                const invitacion = await Invitacion.findById(savedInvitacion._id)
+                    .populate('reserva');
                 console.log('esta es la invitacion', invitacion);
                 // Buscar el administrador asociado al establecimiento
                 const cliente = await Cliente.findOne({ _id: invitacion.invitado });
@@ -342,15 +383,18 @@ export const ClienteResolvers = {
                     throw new GraphQLError('Usuariono encontrado.');
                 }
                 const pushToken = cliente.notificaciones_token;
-                // Convertir resultado en un objeto que incluye id en lugar de _id
-                if (pushToken) {
-                    const body = 'Te han invitado a un partido';
-                    const data = {
-                        invitacion: invitacion,
-                        mensaje: 'Nueva Invitacion realizada',
-                        url: 'reservas'
+                console.log('estos son los token', pushToken);
+                //    // Convertir resultado en un objeto que incluye id en lugar de _id
+                if (pushToken.length > 0) {
+                    const message = {
+                        body: 'Te han invitado a un partido',
+                        data: {
+                            invitacion: invitacion,
+                            mensaje: 'Nueva Invitacion realizada',
+                            url: 'invitaciones_hechas'
+                        },
                     };
-                    await enviarNotificacion(pushToken, body, data);
+                    await NotificacionesPush(pushToken, message);
                 }
                 // Publicar evento de nueva reserva
                 // console.log('Reserva realizada:', resultado);
@@ -361,8 +405,31 @@ export const ClienteResolvers = {
             }
         },
         editarInvitacion: async (_, { id, input }) => {
-            const actualizacion = new Date();
-            const invitacion = await Invitacion.findByIdAndUpdate(id, { ...input, actualizacion }, { new: true }).populate('creador').populate('reserva');
+            console.log(input, id);
+            const invitacion = await Invitacion.findByIdAndUpdate(id, { ...input }, { new: true }).populate('creador').populate('reserva');
+            if (input.estado === 'denegado' || input.estado === 'aceptado') {
+                try {
+                    // Obtener el token de notificación del cliente desde la reserva
+                    const cliente = await Cliente.findById(invitacion.creador);
+                    const pushToken = cliente.notificaciones_token;
+                    console.log('es la segunda reserva', pushToken);
+                    if (pushToken.length > 0) {
+                        const message = {
+                            body: input.estado === 'aceptado' ? 'Una invitación ha sido aceptada' : 'Una invitación ha sido rechazada',
+                            data: {
+                                estado: invitacion.estado,
+                                invitacionId: invitacion.id,
+                                url: 'reservas_hechas',
+                            }
+                        };
+                        await NotificacionesPush(pushToken, message);
+                    }
+                    // Enviar la notificación al cliente
+                }
+                catch (error) {
+                    console.error('Error al enviar la notificación al cliente:', error);
+                }
+            }
             return invitacion;
         },
         eliminarInvitacion: async (_, { id }) => {
@@ -388,7 +455,7 @@ export const ClienteResolvers = {
         },
         reserva: async (invitacion) => {
             console.log('buscando reserva');
-            return await Reserva.findById(invitacion.reserva);
+            return await Reserva.findById(invitacion.reserva).populate('establecimiento');
         },
     },
     Subscription: {

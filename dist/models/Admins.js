@@ -65,7 +65,7 @@ const AdminsSchema = new Schema({
         default: 'no_verificado'
     },
     notificaciones_token: {
-        type: String,
+        type: [String],
         trim: true,
     },
     registro: {

@@ -132,14 +132,6 @@ export const UsuarioResolvers = {
         crearAdmin: async (_, { input }, ctx) => {
             const { telefono, password, email } = input;
             console.log('este es el input0', input);
-            // const existeCliente = await Cliente.findOne({telefono})
-            // if(existeCliente) {
-            //     throw new Error('Ese numero ya esta registrado como usuario');
-            // }
-            // const existeAdmin = await Admin.findOne({telefono})
-            // if(existeAdmin) {
-            //     throw new Error('Ya hay alguien registrado con ese telefono');
-            // }
             const existeAdmin2 = await Admin.findOne({ email });
             if (existeAdmin2) {
                 throw new Error('Ya hay alguien registrado con ese correo');
@@ -257,29 +249,48 @@ export const UsuarioResolvers = {
             return usuario.foto;
         },
         actualizarTokenNotificaciones: async (_, { token }, ctx) => {
+            console.log('token notificacion admin', token);
             if (!ctx.usuario) {
                 throw new GraphQLError('Admin No autenticado', {
                     extensions: { code: 'UNAUTHENTICATED' },
                 });
             }
             let usuario = await Admin.findById(ctx.usuario.id);
-            console.log('USUARIO', usuario);
+            console.log('USUARIO para actualizar', usuario);
             if (!usuario) {
-                throw new Error('usuario no encontrado');
+                throw new Error('Usuario no encontrado');
             }
-            // Si la persona que edita es o no!!
-            usuario = await Admin.findOneAndUpdate({ _id: ctx.usuario.id }, { notificaciones_token: token }, { new: true });
+            if (!usuario.notificaciones_token.includes(token)) {
+                usuario.notificaciones_token.push(token);
+                usuario = await usuario.save();
+            }
             return usuario;
+        },
+        eliminarTokenNotificaciones: async (_, { token, userId }, ctx) => {
+            console.log('eliminando token not', token, userId);
+            let usuario = await Admin.findById(userId);
+            if (!usuario) {
+                throw new Error('Usuario no encontrado');
+            }
+            try {
+                const tokenIndex = usuario.notificaciones_token.indexOf(token);
+                if (tokenIndex !== -1) {
+                    // Eliminar el token del array
+                    usuario.notificaciones_token.splice(tokenIndex, 1);
+                    // Guardar los cambios
+                    usuario = await usuario.save();
+                }
+                return "Token de Actualizacion Eliminado";
+            }
+            catch (error) {
+                throw new Error('Error al eliminar token');
+            }
         },
         /////////////////////////CLIENTE/////////////////////////////////
         crearCliente: async (_, { input }, ctx) => {
             console.log(input);
             const { email, password, telefono } = input;
             console.log('este es el input', input);
-            // const existeCliente = await Cliente.findOne({telefono})
-            // if(existeCliente) {
-            //     throw new Error('Ese numero ya esta registrado');
-            // }
             const existeCliente2 = await Cliente.findOne({ email });
             if (existeCliente2) {
                 throw new Error('Ya hay alguien registrado con ese correo');
@@ -367,7 +378,6 @@ export const UsuarioResolvers = {
                 throw new Error('El Usuario no está registrado');
             }
             try {
-                //Hashear Password
                 const salt = await bcrypt.genSalt(10);
                 const passwordNew = await bcrypt.hash(password, salt);
                 await Cliente.findOneAndUpdate({ email }, { password: passwordNew }, { new: true });
@@ -432,11 +442,33 @@ export const UsuarioResolvers = {
             }
             let usuario = await Cliente.findById(ctx.usuario.id);
             if (!usuario) {
-                throw new Error('usuario cliente no encontrado');
+                throw new Error('Usuario cliente no encontrado');
             }
-            // Si la persona que edita es o no!!
-            usuario = await Cliente.findOneAndUpdate({ _id: ctx.usuario.id }, { notificaciones_token: token }, { new: true });
+            // Verificar si el token ya existe en el array
+            if (!usuario.notificaciones_token.includes(token)) {
+                usuario.notificaciones_token.push(token);
+                usuario = await usuario.save();
+            }
             return usuario;
+        },
+        eliminarTokenNotificacionesCliente: async (_, { token, userId }, ctx) => {
+            console.log('eliminando token not', token, userId);
+            let usuario = await Cliente.findById(userId);
+            if (!usuario) {
+                throw new Error('Usuario cliente no encontrado');
+            }
+            // Verificar si el token existe en el array
+            try {
+                const tokenIndex = usuario.notificaciones_token.indexOf(token);
+                if (tokenIndex !== -1) {
+                    usuario.notificaciones_token.splice(tokenIndex, 1);
+                    usuario = await usuario.save();
+                }
+                return "Token de Actualizacion Eliminado";
+            }
+            catch (error) {
+                throw new Error('Error al eliminar token');
+            }
         },
     },
     Subscription: {

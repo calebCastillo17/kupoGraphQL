@@ -74,7 +74,7 @@ export const AdminResolvers = {
             }
 
             const reservas = await Reserva.find(filtro).sort({ fecha: 1 }).exec();
-            console.log('estas son mis reservas ', reservas);
+            // console.log('estas son mis reservas ', reservas);
             return reservas;
         },
 
@@ -109,7 +109,7 @@ export const AdminResolvers = {
 
             // const reservas =  await Reserva.find({establecimiento:establecimientoId, fecha: { $gte: now }, estado: { $ne: 'denegado' }}).sort({ fecha: 1 }).exec();
             const reservas =  await Reserva.find({establecimiento:establecimientoId, estado: 'solicitud', fecha: { $gte: now }}).sort({ fecha: 1 }).exec();
-            console.log('estas son mis reservas ' ,reservas)
+            // console.log('estas son mis reservas ' ,reservas)
             return reservas;
         },
 
@@ -363,15 +363,17 @@ export const AdminResolvers = {
               const pushToken = cliente.notificaciones_token;
               console.log('es la segunda reserva',pushToken)
 
-              if (pushToken) {
-                const body = estado === 'aceptado'? 'Tu reserva ha sido aceptada':  'Tu reserva ha sido rechazada' ;
-                const data = {
-                    estado: estado,
-                    reservaId: reserva.id,
-                    url: 'reservas_hechas'
-                };
-                await enviarNotificacion(pushToken, body, data);
-            }
+              if (pushToken.length > 0) {
+                const message = {
+                    body:estado === 'aceptado'? 'Tu reserva ha sido aceptada':  'Tu reserva ha sido rechazada' ,
+                    data: {
+                        estado: estado,
+                        reservaId: reserva.id,
+                        url: 'reservas_hechas',
+                    }
+                }
+                await NotificacionesPush(pushToken, message);
+              }
               // Enviar la notificación al cliente
               
             } catch (error) {

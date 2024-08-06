@@ -51,6 +51,7 @@ type Reserva {
     actualizacion: String
     estado: String
     nombreUsuario: String
+    precio:Int
 }
 
 

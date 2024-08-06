@@ -15,7 +15,7 @@ interface Cliente {
     code_verificacion: number;
     estado: string;
     pelotero: Pelotero;
-    notificaciones_token?: string; // El campo notificaciones_token es opcional
+    notificaciones_token?: string[]; // El campo notificaciones_token es opcional
     password: string;
     registro: Date;
     fecha_nacimiento: Date;
@@ -115,7 +115,7 @@ const ClientesSchema = new Schema<Cliente>({
         estatura:{type:String },
     },
     notificaciones_token: {
-        type: String,
+        type: [String],
         trim: true,
     },
     password: {

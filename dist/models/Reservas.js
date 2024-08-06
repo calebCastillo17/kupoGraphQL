@@ -11,6 +11,7 @@ const ReservasSchema = new Schema({
     precio: {
         type: Number,
         require: true,
+        default: 0
     },
     cliente: {
         type: Schema.Types.ObjectId,

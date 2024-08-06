@@ -63,7 +63,7 @@ const InvitacionesSchema = new Schema<Invitacion>({
 });
 
 // Define el índice para el campo de fechaReserva si es necesario
-InvitacionesSchema.index({ fechaReserva: 1 });
+InvitacionesSchema.index({ registro: 1 });
 
 // Define el modelo de Invitacion (usando model)
 const InvitacionModel = model<InvitacionDocument>('Invitacion', InvitacionesSchema);
